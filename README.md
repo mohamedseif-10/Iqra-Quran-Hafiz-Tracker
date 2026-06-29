@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# أقرأ (Iqra) — Quran Memorization Tracker
+
+تطبيق متابعة حلقة تحفيظ القرآن الكريم.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
+cp .env.local.example .env.local   # then fill in your Supabase keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 — you'll be redirected to the login page.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Next.js 16** (App Router, TypeScript)
+- **Tailwind CSS v4** + **shadcn/ui** components
+- **Supabase** (Postgres, Auth, RLS)
+- **Cairo** font (Arabic RTL)
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/
+    (auth)/login/         — login page
+    (admin)/admin/        — admin routes (dashboard, students, teachers, ...)
+    (teacher)/teacher/    — teacher routes (dashboard, students, sessions, ...)
+    layout.tsx            — root layout (RTL, Cairo font)
+    globals.css           — theme tokens + palette
+  components/
+    ui/                   — shadcn/ui base components
+    app-shell.tsx         — sidebar + topbar + mobile nav
+    badges.tsx            — domain badges (rating, session type, gender, attendance)
+    page-placeholder.tsx  — placeholder for pages under construction
+  lib/
+    nav.ts                — navigation config per role
+    utils.ts              — cn() helper
+docs/
+  Quran-hafiz-tracker-design.md   — full design document
+  plans/                          — implementation plans (01–08)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Implementation Plans
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See `docs/plans/00-overview.md` for the full build plan.
 
-## Deploy on Vercel
+## Adding shadcn/ui Components
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npx shadcn@latest add dialog select tabs table tooltip dropdown-menu
+```
