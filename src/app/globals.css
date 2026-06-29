@@ -1,7 +1,10 @@
+@import "tailwindcss";
+
 /*
   أقرأ (Iqra) global styles.
   Arabic, light-only, RTL. Tailwind v4 CSS-first theme (design §8.2, §8.3).
 */
+
 
 :root {
   /* shadcn-style semantic tokens (light only) */

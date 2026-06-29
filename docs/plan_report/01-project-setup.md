@@ -1,9 +1,10 @@
 # Plan 01 — Implementation Report
 
 **Plan:** 01 — Project Setup (Foundation)
-**Status:** ✅ Complete
+**Status:** ✅ Complete (with post-completion fix)
 **Build:** `npm run build` passes with no errors
 **Date:** 2026-06-29
+**Fixed:** 2026-06-29
 
 ---
 
@@ -83,6 +84,7 @@
 | Add `select`, `dialog`, `table`, `toast/sonner`, `tabs`, `dropdown-menu`, `tooltip` | Only added `button`, `card`, `badge`, `input` | These are needed in later plans; will add per-plan when required |
 | `/teacher/ijazat/new` route | Not created | Ijazat are admin-initiated per design §4; teacher can view but not create |
 | Rating/session/gender/attendance color tokens in `@theme` | Colors are inline in `badges.tsx` instead of CSS variables | Simpler for now; can extract to tokens if reused elsewhere |
+| Tailwind CSS v4 styles applied | **Bug fixed post-completion** — `@import "tailwindcss";` was missing from `globals.css`; all pages rendered as plain HTML with no styles. Fixed by prepending the import. | Tailwind v4 requires an explicit CSS-first import unlike v3 |
 
 ---
 
@@ -119,7 +121,7 @@
 
 **Modified:**
 - `src/app/layout.tsx` — RTL, Cairo font, Arabic metadata
-- `src/app/globals.css` — full palette tokens, RTL base styles
+- `src/app/globals.css` — full palette tokens, RTL base styles; **later fixed**: added `@import "tailwindcss";` at top
 - `src/app/page.tsx` — redirect to `/login`
 - `package.json` — renamed to `iqra`
 
@@ -131,8 +133,8 @@
 ## Acceptance Criteria Check
 
 - [x] `npm run dev` runs with no errors; page renders right-to-left in Arabic
-- [x] Cairo font is visibly applied; green primary color on active nav item
-- [x] Sidebar shows correct items for hard-coded `role` prop; mobile shows bottom nav
+- [x] Cairo font is visibly applied; green primary color on active nav item *(required Tailwind import fix)*
+- [x] Sidebar shows correct items for hard-coded `role` prop; mobile shows bottom nav *(required Tailwind import fix)*
 - [x] All placeholder routes load and show their Arabic titles
 - [x] Badge helper components render with correct colors from §8.5
 - [x] `npm run build` passes

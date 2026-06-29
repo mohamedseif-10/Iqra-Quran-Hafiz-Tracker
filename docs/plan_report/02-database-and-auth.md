@@ -1,9 +1,10 @@
 # Plan 02 — Implementation Report
 
 **Plan:** 02 — Database & Authentication
-**Status:** ✅ Complete
+**Status:** ✅ Complete (with post-completion fixes)
 **Build:** `npm run build` passes with no errors
 **Date:** 2026-06-29
+**Fixed:** 2026-06-29
 
 ---
 
@@ -69,6 +70,10 @@
 |---|---|---|
 | Admin operations run server-side | Followed exactly | Handled securely via the server components / actions or proxy middleware |
 | Middleware file name | Created `src/proxy.ts` instead of `src/middleware.ts` | Next.js 16.0 deprecated `middleware.ts` in favor of `proxy.ts` |
+| `AUTH_EMAIL_DOMAIN` value | Changed from `halaqa.local` to `noor-al-eman.local` in `.env.local` | Mosque name `noor-al-eman` is defined as the default domain in `src/lib/auth/shared.ts` |
+| Supabase npm packages missing | **Bug fixed post-completion** — `@supabase/supabase-js` and `@supabase/ssr` were not listed in `package.json` dependencies. Build failed with `Module not found`. Fixed by running `npm install @supabase/supabase-js @supabase/ssr`. | Packages were used in code but not declared as dependencies |
+| Supabase `service_role` DB permissions | **Bug fixed post-completion** — `rls.sql` only granted privileges to `authenticated` role, not to `service_role`. Backend server actions using the admin client got `permission denied for table users`. Fixed by running `GRANT ALL PRIVILEGES ON ALL TABLES/SEQUENCES/FUNCTIONS IN SCHEMA public TO service_role;` in Supabase SQL Editor. | RLS grants were incomplete; `service_role` needs explicit grants in Supabase |
+| Auth user email confirmation | **Bug fixed post-completion** — Supabase Auth users created via the dashboard UI were not email-confirmed. Login returned `Invalid login credentials`. Fixed by running `create-verified-user.mjs` which uses the Admin API to force-confirm the email and reset the password. | Supabase dashboard does not auto-confirm email unless the option is explicitly checked |
 
 ---
 
@@ -93,6 +98,12 @@
 - `src/app/(admin)/admin/layout.tsx` (Added `requireRole` and real user name)
 - `src/app/(teacher)/teacher/layout.tsx` (Added `requireRole` and real user name)
 - `src/components/app-shell.tsx` (Replaced logout link with server action form submit)
+- `package.json` / `package-lock.json` — **post-fix**: added `@supabase/supabase-js` and `@supabase/ssr` dependencies
+- `.env.local` — populated with real Supabase project credentials; `AUTH_EMAIL_DOMAIN` set to `noor-al-eman.local`
+
+**Utility scripts (not committed):**
+- `test-conn.mjs` — diagnosed Supabase connection and auth error type
+- `create-verified-user.mjs` — used once to confirm admin email and insert `public.users` profile row via service role API
 
 ---
 
@@ -100,7 +111,9 @@
 
 - [x] Running `schema.sql` and `seed.sql` succeeds; `surahs` table contains 114 rows and `juz_boundaries` is seeded.
 - [x] RLS policies created and applied; teacher assigned logic is correctly evaluated.
-- [x] Logging in with admin credentials redirects to `/admin`, teacher credentials redirects to `/teacher`.
+- [x] `service_role` granted full privileges on all public tables — required `GRANT ALL PRIVILEGES` in SQL Editor *(post-fix)*.
+- [x] Logging in with admin credentials (`admin` / `Password123`) redirects to `/admin` *(required email confirmation fix + profile row insert)*.
+- [x] Real user name "المدير العام" appears in the sidebar after login.
 - [x] Route guards block unauthorized users from accessing matching paths.
 - [x] Logout signs user out and clears session cookies properly.
 
@@ -108,5 +121,7 @@
 
 ## Notes for Plan 03
 
-- Ensure `.env.local` is present in local environment before starting development server.
-- Set up test accounts in Supabase database using the seeded roles to verify dynamic dashboards.
+- The `.env.local` file must be kept locally and never committed (already in `.gitignore`).
+- When creating future Auth users (teachers), always use `create-verified-user.mjs` or the Admin API to bypass email confirmation, OR enable the "Auto-confirm" option in Supabase Auth Settings.
+- For new deployments, remember to run the `GRANT ALL PRIVILEGES ... TO service_role` SQL before using the app server, as the `rls.sql` alone is not enough.
+- The login username `admin` maps to email `admin@noor-al-eman.local` via `usernameToEmail()` in `shared.ts`.
