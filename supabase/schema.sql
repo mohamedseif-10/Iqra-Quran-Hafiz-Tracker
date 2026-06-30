@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.sessions (
   student_id UUID NOT NULL REFERENCES public.students(id),
   teacher_id UUID NOT NULL REFERENCES public.users(id),
   session_date DATE NOT NULL,
-  session_type TEXT NOT NULL CHECK (session_type IN ('new_memorization', 'review', 'listening')),
+  session_type TEXT NOT NULL CHECK (session_type IN ('new_memorization', 'review', 'Reciting')),
   surah_id INTEGER NOT NULL REFERENCES public.surahs(id),
   from_ayah INTEGER NOT NULL,
   to_ayah INTEGER NOT NULL,

@@ -204,7 +204,7 @@ CREATE TABLE sessions (
   student_id    UUID NOT NULL REFERENCES students(id),
   teacher_id    UUID NOT NULL REFERENCES users(id),
   session_date  DATE NOT NULL,
-  session_type  TEXT NOT NULL CHECK (session_type IN ('new_memorization', 'review', 'listening')),
+  session_type  TEXT NOT NULL CHECK (session_type IN ('new_memorization', 'review', 'Reciting')),
   surah_id      INTEGER NOT NULL REFERENCES surahs(id),
   from_ayah     INTEGER NOT NULL,
   to_ayah       INTEGER NOT NULL,
@@ -380,7 +380,7 @@ MUST be fast and easy to scan as the roster grows.
 3. Session type selector — large tappable buttons:
    - 📖 حفظ جديد (blue)
    - 🔁 مراجعة (purple)
-   - 🎧 سماع (teal)
+   - 🎧 تسميع (teal)
 4. Surah dropdown — shows: `٣٦ - يس` format (number + Arabic name)
 5. From ayah (آية من) — numeric input, min=1 max=surah.total_ayahs
 6. To ayah (آية إلى) — numeric input, validated ≥ from_ayah
@@ -510,7 +510,7 @@ For each juz (1–30):
 📖 ما تم في هذه الفترة
 • حفظ جديد: [surah name] آية [from] → [to]   [rating badge]
 • مراجعة:    [surah name] آية [from] → [to]   [rating badge]
-• سماع:      [surah name] آية [from] → [to]   [rating badge]
+• تسميع:      [surah name] آية [from] → [to]   [rating badge]
 (repeated for each session)
 
 ⭐ التقييمات
@@ -763,7 +763,7 @@ The teachers are NOT tech-savvy. Every screen MUST follow these rules:
 | Rating: ضعيف | Red badge | `#dc2626` |
 | Session: حفظ جديد | Blue badge | `#2563eb` |
 | Session: مراجعة | Purple badge | `#7c3aed` |
-| Session: سماع | Teal badge | `#0d9488` |
+| Session: تسميع | Teal badge | `#0d9488` |
 | Gender: ذكر | Blue tint | `#eff6ff` |
 | Gender: أنثى | Pink tint | `#fdf2f8` |
 | Juz: أجاز | Green | `#16a34a` |
@@ -811,7 +811,7 @@ The teachers are NOT tech-savvy. Every screen MUST follow these rules:
 ```
 حفظ جديد → blue pill    bg:#dbeafe text:#1e40af
 مراجعة   → purple pill  bg:#ede9fe text:#5b21b6
-سماع     → teal pill    bg:#ccfbf1 text:#0f766e
+تسميع     → teal pill    bg:#ccfbf1 text:#0f766e
 ```
 
 **Gender Badge:**

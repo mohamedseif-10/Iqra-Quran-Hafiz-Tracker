@@ -38,7 +38,7 @@
   - Radius scale
 - `src/components/badges.tsx` — Domain-specific badges with exact Arabic labels and §8.5 colors:
   - `RatingBadge`: ممتاز (green), جيد (yellow), ضعيف (red)
-  - `SessionTypeBadge`: حفظ جديد (blue), مراجعة (purple), سماع (teal)
+  - `SessionTypeBadge`: حفظ جديد (blue), مراجعة (purple), تسميع (teal)
   - `GenderBadge`: ذكر (blue), أنثى (pink)
   - `AttendanceBadge`: حاضر (green), غائب (red), متأخر (yellow)
 

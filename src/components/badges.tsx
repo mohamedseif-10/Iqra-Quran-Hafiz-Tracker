@@ -4,7 +4,7 @@ const pill =
   "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium";
 
 export type Rating = "excellent" | "good" | "weak";
-export type SessionType = "new_memorization" | "review" | "listening";
+export type SessionType = "new_memorization" | "review" | "Reciting";
 export type Gender = "male" | "female";
 export type AttendanceStatus = "present" | "absent" | "late";
 
@@ -20,7 +20,7 @@ const sessionTypeMap: Record<
 > = {
   new_memorization: { label: "حفظ جديد", className: "bg-[#dbeafe] text-[#1e40af]" },
   review: { label: "مراجعة", className: "bg-[#ede9fe] text-[#5b21b6]" },
-  listening: { label: "سماع", className: "bg-[#ccfbf1] text-[#0f766e]" },
+  Reciting: { label: "تسميع", className: "bg-[#ccfbf1] text-[#0f766e]" },
 };
 
 const genderMap: Record<Gender, { label: string; className: string }> = {

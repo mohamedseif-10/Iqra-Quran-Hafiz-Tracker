@@ -58,7 +58,7 @@ export function navItemsForRole(role: Role): NavItem[] {
 
 export function teacherNavItems(): NavItem[] {
   return [
-    { label: "لوحتي", href: "/teacher", icon: LayoutDashboard },
+    { label: "لوحة التحكم", href: "/teacher", icon: LayoutDashboard },
     { label: "الطلاب", href: "/teacher/students", icon: Users },
     {
       label: "تسجيل جلسة",

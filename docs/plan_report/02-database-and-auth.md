@@ -17,7 +17,7 @@
   - `teacher_student_assignments`: Manages assignments between teachers and students.
   - `surahs`: Stores standard metadata for the 114 Quranic Surahs.
   - `juz_boundaries`: Stores ayah ranges defining juz segments.
-  - `sessions`: Quranic memorization session records (new memorization, review, listening).
+  - `sessions`: Quranic memorization session records (new memorization, review, Reciting).
   - `attendance`: Tracks daily attendance with check-in status (present, absent, late).
   - `ijazat`: Granted certificates (juz-level or full Quran).
   - `initial_memorization`: Student baseline memorization state.

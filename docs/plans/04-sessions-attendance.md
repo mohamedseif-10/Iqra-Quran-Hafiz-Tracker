@@ -15,7 +15,7 @@ students, with a fast, low-tap mobile-friendly UI.
 ### Session recording (§6.2)
 1. `/teacher/session/new` form following the exact flow in §6.2:
    student dropdown (assigned only) → date (default today) → type buttons
-   (حفظ جديد / مراجعة / سماع) → searchable surah dropdown (`٣٦ - يس`) → from/to ayah numeric
+   (حفظ جديد / مراجعة / تسميع) → searchable surah dropdown (`٣٦ - يس`) → from/to ayah numeric
    inputs → **live Arabic preview** ("سورة يس من الآية ٢٠ إلى الآية ٣٥") → rating buttons
    (ممتاز / جيد / ضعيف) → notes → save.
 2. Validation (§6.2): required fields; `from_ayah ≤ to_ayah`; `to_ayah ≤ surah.total_ayahs`;
