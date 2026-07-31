@@ -78,6 +78,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
         juz_number: initialMemorizationTable.juz_number,
         status: initialMemorizationTable.status,
         sheikh_name: initialMemorizationTable.sheikh_name,
+        pages: initialMemorizationTable.pages,
       })
       .from(initialMemorizationTable)
       .where(eq(initialMemorizationTable.student_id, id))
@@ -156,7 +157,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     }
 
     if ("initial_memorization" in body) {
-      const initRows: Array<{ juz_number: number; status: string; sheikh_name?: string }> =
+      const initRows: Array<{ juz_number: number; status: string; sheikh_name?: string; pages?: number | null }> =
         Array.isArray(body.initial_memorization) ? body.initial_memorization : [];
 
       const initValidationError = validateInitialMemorization(initRows);
@@ -172,6 +173,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
           juz_number: r.juz_number,
           status: r.status,
           sheikh_name: r.sheikh_name ?? null,
+          pages: r.pages ?? null,
         }));
         await db.insert(initialMemorizationTable).values(rowsToInsert);
       }
