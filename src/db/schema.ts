@@ -139,6 +139,38 @@ export const juzBoundariesTable = pgTable(
   ],
 );
 
+/**
+ * Page-level breakdown of each juz in the standard Hafs Madani mushaf.
+ * Maps each page within a juz to the surah(s) and ayah range(s) it contains.
+ * Used for exact ayah-level coverage computation when a student has memorized
+ * N pages of a juz (partial initial memorization).
+ *
+ * Note: most juz have 20 pages, but some have 21 and Juz 30 has 23.
+ * Total: 608 rows. The `mushaf_page` field is the physical page number in the
+ * 604-page mushaf (two rows can share the same mushaf_page when a page spans
+ * two juz).
+ */
+export const juzPagesTable = pgTable(
+  "juz_pages",
+  {
+    juz_number: integer("juz_number").notNull(),
+    page_number: integer("page_number").notNull(),
+    mushaf_page: integer("mushaf_page").notNull(),
+    surah_id: integer("surah_id")
+      .notNull()
+      .references(() => surahsTable.id),
+    from_ayah: integer("from_ayah").notNull(),
+    to_ayah: integer("to_ayah").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.juz_number, t.page_number, t.surah_id] }),
+    check("juz_pages_juz_number_check", sql`${t.juz_number} BETWEEN 1 AND 30`),
+    check("juz_pages_page_number_check", sql`${t.page_number} BETWEEN 1 AND 23`),
+    check("juz_pages_valid_ayah_range", sql`${t.from_ayah} <= ${t.to_ayah}`),
+    index("idx_juz_pages_juz").on(t.juz_number, t.page_number),
+  ],
+);
+
 export const sessionsTable = pgTable(
   "sessions",
   {
@@ -242,6 +274,9 @@ export const initialMemorizationTable = pgTable(
     juz_number: integer("juz_number").notNull(),
     status: text("status").notNull(),
     sheikh_name: varchar("sheikh_name", { length: 100 }),
+    // Number of pages memorized in this juz (Hafs Madani mushaf).
+    // NULL = full juz. 1-N = partial memorization (N varies per juz, max 23).
+    pages: smallint("pages"),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [
@@ -252,6 +287,10 @@ export const initialMemorizationTable = pgTable(
     check(
       "initial_memorization_status_check",
       sql`${t.status} IN ('memorized', 'with_ijaza')`,
+    ),
+    check(
+      "initial_memorization_pages_check",
+      sql`${t.pages} IS NULL OR (${t.pages} BETWEEN 1 AND 23)`,
     ),
     uniqueIndex("initial_memorization_student_id_juz_number_key").on(
       t.student_id,
