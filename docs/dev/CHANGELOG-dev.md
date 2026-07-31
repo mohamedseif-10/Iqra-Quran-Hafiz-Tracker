@@ -6,6 +6,72 @@ inline). This is a record of *what changed and when*, not a status report.
 
 ---
 
+## 2026-07-31 — Phase 9: Repo cleanup, commit organization, and push
+
+### Repo cleanup
+
+- **Removed junk files from git tracking**: `AUDIT.md` (stale audit doc),
+  `bash.exe.stackdump` (Windows crash dump), `create-verified-user.mjs`
+  (one-off Supabase user-creation script), `test-conn.mjs` (one-off DB
+  connection test), `.ottotime` (tool-generated timing file).
+- **Consolidated duplicate docs**: deleted `docs/plan_report/` (5 files,
+  subset of `docs/plans/` which has 8 files including 00-overview, 06,
+  07, 08).
+- **Moved review docs from root to `docs/dev/`**: `ARCHITECTURE_REVIEW.md`,
+  `CODEBASE_REVIEW.md`, `CHANGELOG-dev.md` — dev-only review docs, not
+  needed in repo root.
+- **Updated `.gitignore`**: added `*.stackdump`, `.devin/`, `.omc/`,
+  `.ottotime` to prevent future tool-generated files from being committed.
+
+### Commit organization
+
+All refactoring work (Phases 1–8 + repo cleanup) was committed to branch
+`refactoring/full-codebase-refactor` as 12 logically-ordered commits:
+
+1. `chore: remove junk files, consolidate docs, update .gitignore`
+2. `feat(db): add Drizzle ORM layer — schema, client, migrations`
+3. `feat(domain): add pure business logic layer with 75 tests`
+4. `feat(infrastructure): add Supabase auth adapter layer`
+5. `feat(features): add feature-sliced layer (auth, students, sessions, attendance, ijazat)`
+6. `feat(lib): add shared utilities and tooling (vitest, CI, eslint)`
+7. `refactor(api): migrate all API routes to Drizzle + getApiContext pattern`
+8. `refactor(app): update all pages to use new architecture`
+9. `refactor(components): update shared components and proxy`
+10. `refactor: delete old lib/ modules and components (moved to domain/features)`
+11. `docs: update CLAUDE.md to reflect new architecture`
+12. `chore: remove .ottotime from tracking, commit docs/dev/ and .gitignore updates`
+
+Commit ordering ensures the codebase is never in a broken state between
+commits: new layers added first (2–6), consumers updated (7–9), old code
+deleted last (10), docs updated (11).
+
+### Push
+
+Branch pushed to `origin/refactoring/full-codebase-refactor`. `dev` and
+`main` branches on the remote are untouched. PR to be opened from the
+refactoring branch into `dev`.
+
+### Verification
+
+- `npm run lint` — 0 errors, 0 warnings
+- `npm run build` — passes
+- `npm test` — 75/75 pass
+
+### Final root directory structure (clean)
+
+```
+AGENTS.md  CLAUDE.md  README.md           # docs
+package.json  package-lock.json           # npm
+tsconfig.json  next-env.d.ts              # TypeScript
+next.config.js  eslint.config.mjs         # Next.js / lint
+postcss.config.mjs  components.json       # CSS / shadcn
+drizzle.config.ts  vitest.config.ts       # ORM / tests
+.gitignore                              # git
+docs/  drizzle/  public/  src/  supabase/ # directories
+```
+
+---
+
 ## 2026-07-31 — Phase 8: Fix all code review findings
 
 All 18 findings from the Phase 7 review have been fixed. Verification: lint
