@@ -6,6 +6,107 @@ inline). This is a record of *what changed and when*, not a status report.
 
 ---
 
+## 2026-08-01 — Remove teacher-student assignment system; session-level teacher attribution
+
+Branch: `refactor/drop-teacher-assignments` (off `feature/student-form-improvements`).
+
+### Rationale
+
+The assignment system (`teacher_student_assignments`) restricted teachers to
+seeing only students explicitly assigned to them. This was overly rigid for a
+small halaqa — the user wants all teachers to see all students of the same
+gender (and other genders if `can_view_all_genders` is set), without needing
+admin-managed assignments. Teacher attribution is now recorded per-session via
+`sessions.teacher_id` (which already existed).
+
+### What was removed
+
+- **Assignment API routes**: `src/app/api/assignments/` (GET/POST + `[id]/end`)
+  and `src/app/api/students/[id]/assignments/` — deleted entirely.
+- **Assignment admin page**: `src/app/(admin)/admin/assignments/` (page +
+  client component) — deleted.
+- **Assignment nav entry**: "إسناد الطلاب" removed from `src/lib/nav.ts`.
+- **Assignment dashboard link**: removed from admin dashboard quick actions.
+- **Assignment tab**: removed from `student-profile-tabs.tsx` (the "الإسناد"
+  tab and `AssignmentHistoryRow` interface).
+- **`getAssignedStudentIds()`**: removed from `student-access.ts`.
+- **Assignment checks in `canAccessStudent()`**: now gender-only (admin →
+  always true; teacher with `can_view_all_genders` → true; teacher → true if
+  student gender matches).
+- **Auto-assignment on student create**: teachers creating students no longer
+  auto-create an assignment row.
+- **Assignment scoping everywhere**: student list, student detail, student
+  edit, session list, session new, ijazat list, ijazat new, teacher dashboard,
+  teacher reports — all now use gender-only scoping.
+
+### What replaced it
+
+- **Gender-only scoping**: teachers see all students matching their gender (or
+  all if `can_view_all_genders`). No assignment table lookup needed.
+- **Session-based teacher attribution**: `sessions.teacher_id` (already
+  existed, NOT NULL, FK to users) records which teacher led each session. The
+  session POST route already set this from the authenticated caller.
+- **Session-based "teachers" lists**: admin student profile and teacher
+  profile now show teachers/students based on distinct `sessions` records
+  instead of assignment rows.
+- **Admin teacher_id filter**: the student list filter (admin-only "filter by
+  teacher") now uses `sessions.teacher_id` instead of assignment rows.
+
+### Files changed (24 files, -865 lines net)
+
+- `src/features/auth/student-access.ts` — `canAccessStudent` simplified to
+  gender-only; `getAssignedStudentIds` removed.
+- `src/app/api/students/route.ts` — GET: gender-only scoping for teachers,
+  session-based teacher_id filter for admin. POST: removed auto-assignment.
+- `src/app/api/students/[id]/route.ts` — GET: gender-only check, session-based
+  teacher list. PUT: gender-only check. DELETE: removed assignment row cleanup.
+- `src/app/api/sessions/route.ts` — GET: teacher sees their own recorded
+  sessions (gender-scoped), no assignment student-id filter.
+- `src/app/api/ijazat/route.ts` — GET: gender-only scoping, no assignment
+  check. POST: `canAccessStudent` (now gender-only) for access check.
+- `src/app/api/teachers/[id]/route.ts` — GET: session-based student list
+  instead of assignment-based.
+- `src/app/(admin)/admin/page.tsx` — removed assignments quick-action link.
+- `src/app/(admin)/admin/students/[id]/page.tsx` — session-based teacher list,
+  removed assignment history and assignments tab.
+- `src/app/(admin)/admin/teachers/page.tsx` — session-based student count
+  instead of assignment count.
+- `src/app/(admin)/admin/teachers/[id]/page.tsx` — session-based student list,
+  removed assignment date column.
+- `src/app/(teacher)/teacher/page.tsx` — gender-scoped student queries instead
+  of assignment-based; stat label "طالب مسند" → "طالب".
+- `src/app/(teacher)/teacher/reports/page.tsx` — gender-scoped student queries;
+  removed empty-state "لا يوجد طلاب مسندون".
+- `src/app/(teacher)/teacher/session/new/page.tsx` — gender-scoped student
+  list for session form.
+- `src/app/(teacher)/teacher/ijazat/new/page.tsx` — gender-scoped student list
+  for ijaza form.
+- `src/app/(teacher)/teacher/students/[id]/page.tsx` — gender-only check,
+  removed "current teachers" section.
+- `src/app/(teacher)/teacher/students/[id]/edit/page.tsx` — gender-only check.
+- `src/app/(teacher)/teacher/students/page.tsx` — subtitle updated.
+- `src/features/students/components/student-profile-tabs.tsx` — removed
+  assignments tab, `AssignmentHistoryRow` interface, and related props.
+- `src/lib/nav.ts` — removed "إسناد الطلاب" nav entry and `ClipboardList` import.
+- Deleted: `src/app/api/assignments/` (2 files), `src/app/api/students/[id]/assignments/`
+  (1 file), `src/app/(admin)/admin/assignments/` (2 files).
+
+### DB
+
+No migration needed — `sessions.teacher_id` already existed (NOT NULL, FK to
+users). The `teacher_student_assignments` table remains in the DB schema
+(`src/db/schema.ts`) for historical data but is no longer referenced by any
+application code.
+
+### Verification
+
+- `npm run lint` — 0 errors, 0 warnings
+- `npm test` — 91/91 pass (no test changes needed — domain tests are pure
+  functions that never referenced assignments)
+- `npm run build` — passes (assignment routes gone from route tree)
+
+---
+
 ## 2026-08-01 — Student form improvements: phone validation, Cairo TZ, page-level memorization
 
 Branch: `feature/student-form-improvements` (off `refactoring/full-codebase-refactor`).
