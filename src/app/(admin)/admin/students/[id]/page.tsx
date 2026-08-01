@@ -54,6 +54,7 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
         juz_number: initialMemorizationTable.juz_number,
         status: initialMemorizationTable.status,
         sheikh_name: initialMemorizationTable.sheikh_name,
+        pages: initialMemorizationTable.pages,
       })
       .from(initialMemorizationTable)
       .where(eq(initialMemorizationTable.student_id, id))
@@ -76,6 +77,7 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
     juz_number: r.juz_number,
     status: r.status as "memorized" | "with_ijaza",
     sheikh_name: r.sheikh_name ?? undefined,
+    pages: r.pages,
   }));
 
   const historyValue = assignmentHistory.map((a) => ({

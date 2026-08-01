@@ -19,5 +19,6 @@ export function formatAyahPreview(
 
 /** Format an ISO date string (YYYY-MM-DD) as an Arabic localized date. */
 export function formatArabicDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ar-EG");
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("ar-EG");
 }

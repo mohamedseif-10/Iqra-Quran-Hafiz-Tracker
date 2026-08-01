@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Gender not allowed" }, { status: 403 });
   }
 
-  const initRows: Array<{ juz_number: number; status: string; sheikh_name?: string }> =
+  const initRows: Array<{ juz_number: number; status: string; sheikh_name?: string; pages?: number | null }> =
     Array.isArray(initial_memorization) ? initial_memorization : [];
 
   const initValidationError = validateInitialMemorization(initRows);
@@ -219,6 +219,7 @@ export async function POST(request: NextRequest) {
         juz_number: r.juz_number,
         status: r.status,
         sheikh_name: r.sheikh_name ?? null,
+        pages: r.pages ?? null,
       }));
       await db.insert(initialMemorizationTable).values(rowsToInsert);
     }

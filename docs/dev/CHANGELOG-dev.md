@@ -6,6 +6,105 @@ inline). This is a record of *what changed and when*, not a status report.
 
 ---
 
+## 2026-08-01 — Student form improvements: phone validation, Cairo TZ, page-level memorization
+
+Branch: `feature/student-form-improvements` (off `refactoring/full-codebase-refactor`).
+
+### DB migrations applied to live DB
+
+- **0001** (`0001_skinny_roland_deschain.sql`): Added `students.status_since`,
+  `attendance.recorded_manually`, expanded attendance status CHECK to include
+  `excused`/`holiday`, unique index on attendance. Was previously generated
+  but never applied to the live DB — caused student insert 500 errors. Now applied.
+- **0002** (`0002_woozy_spot.sql`): Added `pages` column (smallint, nullable,
+  CHECK 1-20) to `initial_memorization`.
+- **0003** (`0003_ancient_infant_terrible.sql`): Created `juz_pages` table
+  (`juz_number`, `page_number`, `mushaf_page`, `surah_id`, `from_ayah`,
+  `to_ayah`; PK on juz_number+page_number+surah_id; CHECK constraints; FK to
+  `surahs`; index). Expanded `initial_memorization.pages` CHECK to 1-23.
+  Seeded with 665 rows from `juz_pages.json` via `scripts/seed-juz-pages.js`.
+
+### Domain logic
+
+- **`src/domain/students.ts`**: `validateStudentPayload` now enforces Egyptian
+  phone format `^01[0125]\d{8}$` (11 digits, prefixes 010/011/012/015).
+  `validateInitialMemorization` accepts and validates optional `pages` field
+  (nullable, 1-23). `countsFromInitialMemorization` unchanged — each init mem
+  row still counts as 1 memorized juz; pages affect coverage %, not the count.
+- **`src/domain/progress.ts`**: Added `JuzPageRow` interface. `InitialMemRow`
+  extended with `pages?: number | null`. `computeJuzProgressPure` and
+  `computeJuzProgressDetailedPure` now accept a `juzPages` parameter. When an
+  init mem row has `pages` set (partial memorization), coverage is computed
+  from exact page-to-ayah ranges in `juz_pages` instead of the previous
+  approximate N/20 proportional formula. Overall coverage = max(session
+  coverage, init-mem page coverage). Detailed view also computes per-surah
+  coverage for partial init mem using page-level ayah ranges.
+
+### Server shells & API routes
+
+- **`src/features/students/server/progress.ts`**: Fetches `juz_pages` and
+  `initial_memorization.pages`, passes both to `computeJuzProgressPure`.
+- **`src/app/api/students/[id]/progress/route.ts`**: Fetches `juz_pages`,
+  passes to `computeJuzProgressDetailedPure`.
+- **`src/app/api/students/route.ts`** (POST) and
+  **`src/app/api/students/[id]/route.ts`** (PUT/GET): Pass `pages` through
+  initial_memorization insert/select.
+
+### UI
+
+- **`src/features/students/components/initial-memorization-grid.tsx`**: Added
+  `pages?: number | null` to `JuzEntry`. Expanded juz section now has a pages
+  input (1-23, optional) with hint text. Juz button label shows page count for
+  partial memorization.
+- **`src/features/students/components/new-student-form.tsx`**: Client-side
+  Egyptian phone validation; phone placeholder updated to `01xxxxxxxxx`;
+  `initMem` array includes `pages` from the grid.
+- **`src/app/(admin)/admin/students/[id]/edit/edit-student-form.tsx`** and
+  **`src/app/(admin)/admin/students/[id]/edit/page.tsx`**: Client-side phone
+  validation; `pages` passed from DB through to the edit form.
+- **`src/app/(admin)/admin/students/[id]/page.tsx`** and
+  **`src/app/(teacher)/teacher/students/[id]/page.tsx`**: `pages` passed to
+  display.
+
+### Utilities
+
+- **`src/lib/utils.ts`**: `todayDateString()` now uses `Africa/Cairo` timezone
+  via `toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" })`.
+- **`src/lib/api-error.ts`**: `sanitizeError` now logs `error.cause` and
+  `error.stack` for better DB error visibility.
+
+### Tests
+
+- **`src/domain/students.test.ts`**: Phone test numbers updated from
+  `0512345678` to `01012345678`. Added pages validation tests (1-23 range,
+  null/undefined accepted).
+- **`src/domain/progress.test.ts`**: Added `JuzPageRow` import and mock
+  `mockJuzPages` data for Juz 1 (20 pages covering 148 ayahs: Fatiha 1-7 +
+  Baqarah 1-141). Partial-pages tests rewritten to pass `juzPages` and verify
+  exact coverage (52.7% for 10 pages, 76.4% for 15 pages, 26.4% for 5 pages)
+  instead of the old approximate formula. Added a detailed-view test verifying
+  per-surah coverage breakdown for partial init mem.
+
+### Verification
+
+- `npm run lint` — 0 errors, 0 warnings
+- `npm test` — 91/91 pass (up from 75)
+- `npm run build` — passes (TypeScript check + 25 static pages)
+
+### Key design decisions
+
+- Guardian name stays **required** (considered auto-extracting father's name,
+  rejected).
+- `pages` does **not** affect `memorized_juz_count` — each init mem row still
+  counts as 1 juz. Pages only affect coverage % on the progress map.
+- `juz_pages` table has 665 rows (some pages span multiple surahs, getting one
+  row per surah). Juz page counts vary: most juz have 20 pages, some have 21,
+  Juz 30 has 23 — hence the CHECK 1-23.
+- Future feature noted: surah-based memorization entry (e.g. "memorized Surah
+  Al-Baqarah" → auto-calculate juz + pages).
+
+---
+
 ## 2026-07-31 — Phase 9: Repo cleanup, commit organization, and push
 
 ### Repo cleanup

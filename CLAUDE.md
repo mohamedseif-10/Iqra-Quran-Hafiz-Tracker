@@ -13,7 +13,7 @@ npm run dev        # start dev server on :3000
 npm run build      # production build (also the primary typecheck — CI-equivalent)
 npm run lint       # eslint (flat config, next core-web-vitals + typescript)
 npm start          # serve production build
-npm test           # vitest run (75 unit tests across progress, attendance, students, sessions)
+npm test           # vitest run (91 unit tests across progress, attendance, students, sessions)
 npm run test:watch # vitest in watch mode
 
 # Drizzle ORM (schema + migrations)
@@ -114,6 +114,7 @@ The established pattern (see `src/app/api/students/route.ts`) is:
 For each of the 30 juz it computes ayah-level coverage by intersecting recorded `sessions` (ayah ranges) against `juz_boundaries`, unioning overlapping ranges per surah, then assigns a color:
 - **green** = has ijaza · **blue** = ≥70% covered, not weak-dominant, active within 30 days · **yellow** = covered but stale/weak · **gray** = untouched.
 - `initial_memorization` rows count as fully-covered juz; `with_ijaza` status and formal `ijazat` (type `juz` or `full_quran`) confer ijaza/green.
+- An init mem row with a non-null `pages` value represents **partial** memorization — coverage is computed from exact page-to-ayah ranges in the `juz_pages` table (not the old N/20 proportional estimate). Overall coverage = max(session coverage, init-mem page coverage). `pages` does **not** affect `memorized_juz_count` — each init mem row still counts as 1 juz.
 
 `students.memorized_juz_count`, `ijaza_juz_count`, and `last_session_date` are **denormalized caches**. After any mutation that affects progress (new session, ijaza, initial-memorization edit), call `recalculateStudentSummary()` (`src/features/students/server/recalc.ts`) to recompute them. `backfill.ts` reruns this across all students. Both take a `Db` client.
 
@@ -128,7 +129,9 @@ Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `ap
 - **RLS policies**: `src/db/rls.sql` — applied manually once (Drizzle does not manage RLS). A copy is also in `supabase/legacy/rls.sql`.
 - **Seed data**: `supabase/legacy/seed.sql` — 114 surahs + 30 juz boundaries. Apply once on a fresh database.
 - **Legacy schema**: `supabase/legacy/schema.sql` — the original full schema, superseded by Drizzle. See `supabase/legacy/README.md`.
-- Key tables: `users`, `students`, `teacher_student_assignments`, `sessions`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`.
+- Key tables: `users`, `students`, `teacher_student_assignments`, `sessions`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`, `juz_pages`.
+- **`juz_pages`** maps each page within each juz to exact surah + ayah range(s) (665 rows; some pages span multiple surahs → one row per surah). Seeded from `juz_pages.json` via `scripts/seed-juz-pages.js`. Used by progress computation for partial init-mem coverage. Juz page counts vary (most 20, some 21, Juz 30 has 23) — hence `initial_memorization.pages` CHECK is 1-23.
+- **`initial_memorization.pages`** (smallint, nullable, CHECK 1-23): when set, the row represents partial memorization of that juz (N pages memorized, not the full juz). When null/absent, the row = full juz memorized.
 
 ### Connection: Supavisor pooler (IPv4)
 
@@ -146,8 +149,10 @@ DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supaba
 - **Data queries use Drizzle** (`getDb()` + `db.select().from(table)`). **Auth queries use Supabase SDK** (`supabase.auth.*`). Never use the Supabase JS SDK `.from()` for data queries — use Drizzle instead.
 - **Error handling**: Drizzle throws on error (no `error` field in response). Use `sanitizeError()` from `@/lib/api-error` in catch blocks for API responses. Never return raw `error.message` to the client.
 - **Client-side data fetching**: use `apiGet`/`apiPost`/`apiPut`/`apiDelete` from `@/lib/api-client` (handles JSON parsing, error normalization via `ApiError`).
+- **Phone validation**: guardian phones must match the Egyptian format `^01[0125]\d{8}$` (11 digits, prefixes 010/011/012/015). Enforced server-side in `validateStudentPayload` and client-side in the new/edit student forms.
+- **Timezone**: `todayDateString()` in `@/lib/utils` uses `Africa/Cairo` for date determination (attendance "today" rolls over at midnight Cairo time, not UTC).
 - `docs/plans/00-overview.md` and the numbered plan files describe the intended build sequence; `docs/Quran-hafiz-tracker-design.md` is the full spec that section references (e.g. "§6.1.1") point to.
 
 ## Testing
 
-Vitest is configured (`vitest.config.ts`). Tests are co-located with source files as `*.test.ts` in `src/domain/`. Run with `npm test`. The pure domain functions (`computeJuzProgressPure`, `computeJuzProgressDetailedPure`, `computeAttendanceCalendar`, `computeDayAttendance`, `validateSessionPayload`, `validateStudentPayload`, `validateInitialMemorization`, `getLevelInfo`, `countsFromInitialMemorization`) are unit-tested; the DB-fetching shells are not (they require a live DB).
+Vitest is configured (`vitest.config.ts`). Tests are co-located with source files as `*.test.ts` in `src/domain/`. Run with `npm test` (91 tests across progress, attendance, students, sessions). The pure domain functions (`computeJuzProgressPure`, `computeJuzProgressDetailedPure`, `computeAttendanceCalendar`, `computeDayAttendance`, `validateSessionPayload`, `validateStudentPayload`, `validateInitialMemorization`, `getLevelInfo`, `countsFromInitialMemorization`) are unit-tested; the DB-fetching shells are not (they require a live DB).

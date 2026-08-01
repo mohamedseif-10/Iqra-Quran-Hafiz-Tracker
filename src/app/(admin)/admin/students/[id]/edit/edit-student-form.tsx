@@ -72,6 +72,13 @@ export function EditStudentForm({ student, initialMem, redirectBase, mode }: Edi
       return;
     }
 
+    // Egyptian phone validation: 11 digits starting with 010/011/012/015
+    const phone = form.guardian_phone.trim();
+    if (!/^01[0125]\d{8}$/.test(phone)) {
+      setError("رقم الهاتف يجب أن يكون 11 رقماً يبدأ بـ 010 أو 011 أو 012 أو 015");
+      return;
+    }
+
     const missingSheikhName = initMem.find(
       (r) => r.status === "with_ijaza" && !r.sheikh_name?.trim()
     );
@@ -218,7 +225,7 @@ export function EditStudentForm({ student, initialMem, redirectBase, mode }: Edi
             dir="ltr"
             value={form.guardian_phone}
             onChange={(e) => set("guardian_phone", e.target.value)}
-            placeholder="05xxxxxxxx"
+            placeholder="01XXXXXXXXX"
           />
         </div>
 

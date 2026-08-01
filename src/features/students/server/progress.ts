@@ -13,6 +13,7 @@ import {
   ijazatTable,
   initialMemorizationTable,
   juzBoundariesTable,
+  juzPagesTable,
   sessionsTable,
 } from "@/db/schema";
 import {
@@ -22,6 +23,7 @@ import {
   type SessionRow,
   type InitialMemRow,
   type IjazaRow,
+  type JuzPageRow,
 } from "@/domain/progress";
 
 export async function computeJuzProgress(
@@ -29,7 +31,7 @@ export async function computeJuzProgress(
   studentId: string,
   referenceDate: Date = new Date()
 ): Promise<JuzProgress[]> {
-  const [boundaries, sessions, initialMem, ijazat] = await Promise.all([
+  const [boundaries, sessions, initialMem, ijazat, juzPages] = await Promise.all([
     db
       .select({
         juz_number: juzBoundariesTable.juz_number,
@@ -53,6 +55,7 @@ export async function computeJuzProgress(
       .select({
         juz_number: initialMemorizationTable.juz_number,
         status: initialMemorizationTable.status,
+        pages: initialMemorizationTable.pages,
       })
       .from(initialMemorizationTable)
       .where(eq(initialMemorizationTable.student_id, studentId)),
@@ -63,6 +66,15 @@ export async function computeJuzProgress(
       })
       .from(ijazatTable)
       .where(eq(ijazatTable.student_id, studentId)),
+    db
+      .select({
+        juz_number: juzPagesTable.juz_number,
+        page_number: juzPagesTable.page_number,
+        surah_id: juzPagesTable.surah_id,
+        from_ayah: juzPagesTable.from_ayah,
+        to_ayah: juzPagesTable.to_ayah,
+      })
+      .from(juzPagesTable),
   ]);
 
   return computeJuzProgressPure({
@@ -70,6 +82,7 @@ export async function computeJuzProgress(
     sessions: sessions as SessionRow[],
     initialMem: initialMem as InitialMemRow[],
     ijazat: ijazat as IjazaRow[],
+    juzPages: juzPages as JuzPageRow[],
     referenceDate
   });
 }
