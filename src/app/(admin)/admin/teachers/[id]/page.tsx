@@ -1,7 +1,7 @@
 import { requireRole } from "@/features/auth/session";
 import { getDb } from "@/db/client";
-import { usersTable, teacherStudentAssignmentsTable, studentsTable } from "@/db/schema";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { usersTable, sessionsTable, studentsTable } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { GenderBadge } from "@/components/badges";
@@ -45,31 +45,29 @@ export default async function TeacherProfilePage({ params }: PageProps) {
 
   if (!teacher) return notFound();
 
-  const assignments = await db
+  // Students this teacher has recorded sessions with (distinct)
+  const sessionStudents = await db
     .select({
-      assignment_id: teacherStudentAssignmentsTable.id,
-      start_date: teacherStudentAssignmentsTable.start_date,
       student_id: studentsTable.id,
       student_name: studentsTable.name,
       student_gender: studentsTable.gender,
       student_memorized_juz_count: studentsTable.memorized_juz_count,
       student_status: studentsTable.status,
     })
-    .from(teacherStudentAssignmentsTable)
-    .leftJoin(studentsTable, eq(teacherStudentAssignmentsTable.student_id, studentsTable.id))
-    .where(and(eq(teacherStudentAssignmentsTable.teacher_id, id), isNull(teacherStudentAssignmentsTable.end_date)))
-    .orderBy(asc(teacherStudentAssignmentsTable.start_date));
+    .from(sessionsTable)
+    .leftJoin(studentsTable, eq(sessionsTable.student_id, studentsTable.id))
+    .where(eq(sessionsTable.teacher_id, id))
+    .groupBy(studentsTable.id, studentsTable.name, studentsTable.gender, studentsTable.memorized_juz_count, studentsTable.status);
 
-  const students = assignments
-    .filter((a) => a.student_id !== null)
-    .map((a) => ({
-      id: a.student_id!,
-      name: a.student_name!,
-      gender: a.student_gender!,
-      memorized_juz_count: a.student_memorized_juz_count ?? 0,
-      status: a.student_status,
-      assignment_id: a.assignment_id,
-      start_date: a.start_date,
+  const students = sessionStudents
+    .filter((s) => s.student_id !== null)
+    .map((s) => ({
+      id: s.student_id!,
+      name: s.student_name!,
+      gender: s.student_gender!,
+      memorized_juz_count: s.student_memorized_juz_count ?? 0,
+      status: s.student_status,
+      start_date: "",
     }));
 
   return (
@@ -125,14 +123,14 @@ export default async function TeacherProfilePage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Current students */}
+      {/* Students with recorded sessions */}
       <div className="card p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="font-semibold">الطلاب الحاليون ({students.length})</h3>
+          <h3 className="font-semibold">الطلاب ({students.length})</h3>
         </div>
         {students.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            لا يوجد طلاب مسندون لهذا المحفظ حالياً
+            لا يوجد طلاب سجل هذا المحفظ جلسات لهم
           </p>
         ) : (
           <table className="w-full text-sm">
@@ -141,7 +139,6 @@ export default async function TeacherProfilePage({ params }: PageProps) {
                 <th className="px-4 py-2.5 font-medium">الطالب</th>
                 <th className="px-4 py-2.5 font-medium">الجنس</th>
                 <th className="px-4 py-2.5 font-medium">المستوى</th>
-                <th className="px-4 py-2.5 font-medium">تاريخ الإسناد</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -157,9 +154,6 @@ export default async function TeacherProfilePage({ params }: PageProps) {
                   </td>
                   <td className="px-4 py-2.5">
                     <LevelBadge memorizedJuzCount={s.memorized_juz_count} />
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {new Date(s.start_date).toLocaleDateString("ar-EG")}
                   </td>
                 </tr>
               ))}

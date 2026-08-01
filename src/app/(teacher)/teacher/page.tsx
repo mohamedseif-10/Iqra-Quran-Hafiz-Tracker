@@ -3,9 +3,9 @@ import { getDb } from "@/db/client";
 import {
   studentsTable,
   sessionsTable,
-  teacherStudentAssignmentsTable,
+  usersTable,
 } from "@/db/schema";
-import { and, asc, count, desc, eq, gte, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, lt, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Award, AlertTriangle, Plus } from "lucide-react";
@@ -31,26 +31,31 @@ export default async function TeacherDashboardPage() {
   thirtyDaysAgo.setDate(now.getDate() - 30);
   const thirtyDaysAgoStr = toDateString(thirtyDaysAgo);
 
-  // My assigned students
-  const myAssignments = await db
-    .select({ student_id: teacherStudentAssignmentsTable.student_id })
-    .from(teacherStudentAssignmentsTable)
-    .where(
-      and(
-        eq(teacherStudentAssignmentsTable.teacher_id, user.id),
-        isNull(teacherStudentAssignmentsTable.end_date),
-      ),
-    );
+  // Gender scoping: fetch teacher's gender settings
+  const [teacherUser] = await db
+    .select({
+      gender: usersTable.gender,
+      can_view_all_genders: usersTable.can_view_all_genders,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, user.id))
+    .limit(1);
 
-  const myStudentIds = myAssignments.map((a) => a.student_id);
+  // Build gender-scoped student conditions (no assignment check)
+  const studentConditions = [
+    eq(studentsTable.status, "active"),
+  ];
+  if (teacherUser && !teacherUser.can_view_all_genders && teacherUser.gender) {
+    studentConditions.push(eq(studentsTable.gender, teacherUser.gender));
+  }
 
-  const emptyArray = [] as const;
   const [
     sessionsTodayRows,
     sessionsWeekRows,
     recentSessions,
     atRisk,
     myStudents,
+    studentCount,
   ] = await Promise.all([
     db
       .select({ c: count() })
@@ -87,49 +92,45 @@ export default async function TeacherDashboardPage() {
       .where(eq(sessionsTable.teacher_id, user.id))
       .orderBy(desc(sessionsTable.session_date), desc(sessionsTable.created_at))
       .limit(6),
-    myStudentIds.length > 0
-      ? db
-          .select({
-            id: studentsTable.id,
-            name: studentsTable.name,
-            gender: studentsTable.gender,
-            last_session_date: studentsTable.last_session_date,
-            memorized_juz_count: studentsTable.memorized_juz_count,
-          })
-          .from(studentsTable)
-          .where(
-            and(
-              inArray(studentsTable.id, myStudentIds),
-              eq(studentsTable.status, "active"),
-              or(
-                isNull(studentsTable.last_session_date),
-                lt(studentsTable.last_session_date, thirtyDaysAgoStr),
-              ),
-            ),
-          )
-          .orderBy(asc(studentsTable.last_session_date))
-      : Promise.resolve(emptyArray),
-    myStudentIds.length > 0
-      ? db
-          .select({
-            id: studentsTable.id,
-            name: studentsTable.name,
-            gender: studentsTable.gender,
-            memorized_juz_count: studentsTable.memorized_juz_count,
-            ijaza_juz_count: studentsTable.ijaza_juz_count,
-            last_session_date: studentsTable.last_session_date,
-          })
-          .from(studentsTable)
-          .where(
-            and(
-              inArray(studentsTable.id, myStudentIds),
-              eq(studentsTable.status, "active"),
-            ),
-          )
-          .orderBy(desc(studentsTable.last_session_date))
-          .limit(8)
-      : Promise.resolve(emptyArray),
+    db
+      .select({
+        id: studentsTable.id,
+        name: studentsTable.name,
+        gender: studentsTable.gender,
+        last_session_date: studentsTable.last_session_date,
+        memorized_juz_count: studentsTable.memorized_juz_count,
+      })
+      .from(studentsTable)
+      .where(
+        and(
+          ...studentConditions,
+          or(
+            isNull(studentsTable.last_session_date),
+            lt(studentsTable.last_session_date, thirtyDaysAgoStr),
+          ),
+        ),
+      )
+      .orderBy(asc(studentsTable.last_session_date)),
+    db
+      .select({
+        id: studentsTable.id,
+        name: studentsTable.name,
+        gender: studentsTable.gender,
+        memorized_juz_count: studentsTable.memorized_juz_count,
+        ijaza_juz_count: studentsTable.ijaza_juz_count,
+        last_session_date: studentsTable.last_session_date,
+      })
+      .from(studentsTable)
+      .where(and(...studentConditions))
+      .orderBy(desc(studentsTable.last_session_date))
+      .limit(8),
+    db
+      .select({ c: count() })
+      .from(studentsTable)
+      .where(and(...studentConditions)),
   ]);
+
+  const myStudentCount = studentCount[0]?.c ?? 0;
 
   const sessionsToday  = sessionsTodayRows[0]?.c ?? 0;
   const sessionsWeek   = sessionsWeekRows[0]?.c ?? 0;
@@ -159,8 +160,8 @@ export default async function TeacherDashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="card text-center space-y-1">
-          <p className="text-3xl font-bold text-primary">{myStudentIds.length}</p>
-          <p className="text-xs text-muted-foreground">طالب مسند</p>
+          <p className="text-3xl font-bold text-primary">{myStudentCount}</p>
+          <p className="text-xs text-muted-foreground">طالب</p>
         </div>
         <div className="card text-center space-y-1">
           <p className="text-3xl font-bold text-[#854d0e]">{sessionsToday}</p>

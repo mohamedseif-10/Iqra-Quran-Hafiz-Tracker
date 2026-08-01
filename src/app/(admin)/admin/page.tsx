@@ -11,7 +11,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   BookOpen, Award,
-  AlertTriangle, ClipboardList, Plus,
+  AlertTriangle, Plus,
 } from "lucide-react";
 import { GenderBadge } from "@/components/badges";
 import { toDateString } from "@/lib/utils";
@@ -146,10 +146,6 @@ export default async function AdminDashboardPage() {
         <Link href="/admin/teachers/new" className="btn-secondary gap-1.5 text-sm">
           <Plus className="size-4" />
           محفظ جديد
-        </Link>
-        <Link href="/admin/assignments" className="btn-secondary gap-1.5 text-sm">
-          <ClipboardList className="size-4" />
-          إسناد الطلاب
         </Link>
         <Link href="/admin/ijazat" className="btn-secondary gap-1.5 text-sm">
           <Award className="size-4" />

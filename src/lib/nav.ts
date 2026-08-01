@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Users,
   GraduationCap,
-  ClipboardList,
   BookOpen,
   BarChart3,
   Award,
@@ -34,12 +33,6 @@ export const navItems: NavItem[] = [
     label: "المحفظون",
     href: "/admin/teachers",
     icon: GraduationCap,
-    adminOnly: true,
-  },
-  {
-    label: "إسناد الطلاب",
-    href: "/admin/assignments",
-    icon: ClipboardList,
     adminOnly: true,
   },
   {

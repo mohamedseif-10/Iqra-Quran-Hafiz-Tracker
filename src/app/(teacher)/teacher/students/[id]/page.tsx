@@ -2,11 +2,10 @@ import { requireRole } from "@/features/auth/session";
 import { getDb } from "@/db/client";
 import {
   studentsTable,
-  teacherStudentAssignmentsTable,
   usersTable,
   initialMemorizationTable,
 } from "@/db/schema";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Pencil, Award } from "lucide-react";
@@ -38,22 +37,7 @@ export default async function TeacherStudentProfilePage({ params }: PageProps) {
 
   if (!student) return notFound();
 
-  // Enforce assignment scoping
-  const [assign] = await db
-    .select({ id: teacherStudentAssignmentsTable.id })
-    .from(teacherStudentAssignmentsTable)
-    .where(
-      and(
-        eq(teacherStudentAssignmentsTable.teacher_id, user.id),
-        eq(teacherStudentAssignmentsTable.student_id, id),
-        isNull(teacherStudentAssignmentsTable.end_date),
-      ),
-    )
-    .limit(1);
-
-  if (!assign) return notFound();
-
-  // Enforce gender scoping
+  // Enforce gender scoping (no assignment check)
   const [teacherUser] = await db
     .select({
       gender: usersTable.gender,
@@ -67,23 +51,6 @@ export default async function TeacherStudentProfilePage({ params }: PageProps) {
   if (!teacherUser.can_view_all_genders && student.gender !== teacherUser.gender) {
     return notFound();
   }
-
-  // Active teachers for this student
-  const activeAssignments = await db
-    .select({
-      id: teacherStudentAssignmentsTable.id,
-      teacher_id: teacherStudentAssignmentsTable.teacher_id,
-      start_date: teacherStudentAssignmentsTable.start_date,
-      teacher_name: usersTable.name,
-    })
-    .from(teacherStudentAssignmentsTable)
-    .leftJoin(usersTable, eq(teacherStudentAssignmentsTable.teacher_id, usersTable.id))
-    .where(
-      and(
-        eq(teacherStudentAssignmentsTable.student_id, id),
-        isNull(teacherStudentAssignmentsTable.end_date),
-      ),
-    );
 
   // Initial memorization
   const initialMem = await db
@@ -212,30 +179,6 @@ export default async function TeacherStudentProfilePage({ params }: PageProps) {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Current teachers */}
-      <div className="card space-y-3">
-        <h3 className="font-semibold border-b border-border pb-3 mb-1">
-          المحفظون الحاليون ({activeAssignments.length})
-        </h3>
-        {!activeAssignments.length ? (
-          <p className="text-sm text-muted-foreground">لا يوجد محفظون مسندون حالياً</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {activeAssignments.map((a) => {
-              return a.teacher_name ? (
-                <span
-                  key={a.id}
-                  className="flex items-center gap-2.5 rounded-lg border border-border bg-secondary/40 px-3.5 py-3 shadow-xs"
-                >
-                  <div className="size-2 rounded-full bg-primary shrink-0" />
-                  <span className="font-semibold text-sm text-foreground">{a.teacher_name}</span>
-                </span>
-              ) : null;
-            })}
-          </div>
-        )}
       </div>
 
       <StudentProfileTabs studentId={id} initMemValue={initMemValue} />

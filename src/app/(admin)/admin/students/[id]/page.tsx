@@ -2,11 +2,11 @@ import { requireRole } from "@/features/auth/session";
 import { getDb } from "@/db/client";
 import {
   studentsTable,
-  teacherStudentAssignmentsTable,
+  sessionsTable,
   usersTable,
   initialMemorizationTable,
 } from "@/db/schema";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Pencil, Award } from "lucide-react";
@@ -38,17 +38,16 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
 
   if (!student) return notFound();
 
-  const [activeAssignments, initialMem, assignmentHistory] = await Promise.all([
+  const [sessionTeachers, initialMem] = await Promise.all([
     db
       .select({
-        id: teacherStudentAssignmentsTable.id,
-        teacher_id: teacherStudentAssignmentsTable.teacher_id,
-        start_date: teacherStudentAssignmentsTable.start_date,
+        teacher_id: sessionsTable.teacher_id,
         teacher_name: usersTable.name,
       })
-      .from(teacherStudentAssignmentsTable)
-      .leftJoin(usersTable, eq(teacherStudentAssignmentsTable.teacher_id, usersTable.id))
-      .where(and(eq(teacherStudentAssignmentsTable.student_id, id), isNull(teacherStudentAssignmentsTable.end_date))),
+      .from(sessionsTable)
+      .leftJoin(usersTable, eq(sessionsTable.teacher_id, usersTable.id))
+      .where(eq(sessionsTable.student_id, id))
+      .groupBy(sessionsTable.teacher_id, usersTable.name),
     db
       .select({
         juz_number: initialMemorizationTable.juz_number,
@@ -59,34 +58,22 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
       .from(initialMemorizationTable)
       .where(eq(initialMemorizationTable.student_id, id))
       .orderBy(asc(initialMemorizationTable.juz_number)),
-    db
-      .select({
-        id: teacherStudentAssignmentsTable.id,
-        teacher_id: teacherStudentAssignmentsTable.teacher_id,
-        start_date: teacherStudentAssignmentsTable.start_date,
-        end_date: teacherStudentAssignmentsTable.end_date,
-        teacher_name: usersTable.name,
-      })
-      .from(teacherStudentAssignmentsTable)
-      .leftJoin(usersTable, eq(teacherStudentAssignmentsTable.teacher_id, usersTable.id))
-      .where(eq(teacherStudentAssignmentsTable.student_id, id))
-      .orderBy(desc(teacherStudentAssignmentsTable.start_date)),
   ]);
+
+  const activeAssignments = sessionTeachers
+    .filter((r) => r.teacher_name)
+    .map((r, i) => ({
+      id: `session-${r.teacher_id}-${i}`,
+      teacher_id: r.teacher_id,
+      start_date: "",
+      teacher_name: r.teacher_name!,
+    }));
 
   const initMemValue = initialMem.map((r) => ({
     juz_number: r.juz_number,
     status: r.status as "memorized" | "with_ijaza",
     sheikh_name: r.sheikh_name ?? undefined,
     pages: r.pages,
-  }));
-
-  const historyValue = assignmentHistory.map((a) => ({
-    id: a.id,
-    teacher_id: a.teacher_id,
-    teacher_name: a.teacher_name ?? "",
-    start_date: a.start_date,
-    end_date: a.end_date,
-    is_active: a.end_date === null,
   }));
 
   const age = student.birth_date
@@ -199,13 +186,13 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Current teachers */}
+      {/* Teachers who recorded sessions with this student */}
       <div className="card space-y-3">
         <h3 className="font-semibold border-b border-border pb-3 mb-1">
-          المحفظون الحاليون ({activeAssignments.length})
+          المحفظون ({activeAssignments.length})
         </h3>
         {!activeAssignments.length ? (
-          <p className="text-sm text-muted-foreground">لا يوجد محفظون مسندون حالياً</p>
+          <p className="text-sm text-muted-foreground">لا يوجد محفظون سجلوا جلسات لهذا الطالب</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {activeAssignments.map((a) => {
@@ -222,18 +209,11 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
             })}
           </div>
         )}
-        <div className="pt-1">
-          <Link href="/admin/assignments" className="text-xs text-primary hover:underline">
-            إدارة الإسناد ←
-          </Link>
-        </div>
       </div>
 
       <StudentProfileTabs
         studentId={id}
         initMemValue={initMemValue}
-        assignmentHistory={historyValue}
-        showAssignmentsTab
         isAdmin
       />
 

@@ -1,7 +1,7 @@
 import { requireRole } from "@/features/auth/session";
 import { getDb } from "@/db/client";
-import { usersTable, teacherStudentAssignmentsTable } from "@/db/schema";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { usersTable, sessionsTable } from "@/db/schema";
+import { asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { GenderBadge } from "@/components/badges";
 import { PlusCircle, Users } from "lucide-react";
@@ -29,14 +29,15 @@ export default async function AdminTeachersPage() {
         .orderBy(asc(usersTable.name))
     : [];
 
-  // Count active students per teacher
+  // Count distinct students per teacher (based on sessions recorded)
   const teacherIds = teachers.map((t) => t.id);
   const assignmentCounts: Record<string, number> = {};
   if (db && teacherIds.length > 0) {
     const counts = await db
-      .select({ teacher_id: teacherStudentAssignmentsTable.teacher_id })
-      .from(teacherStudentAssignmentsTable)
-      .where(and(inArray(teacherStudentAssignmentsTable.teacher_id, teacherIds), isNull(teacherStudentAssignmentsTable.end_date)));
+      .select({ teacher_id: sessionsTable.teacher_id, student_id: sessionsTable.student_id })
+      .from(sessionsTable)
+      .where(inArray(sessionsTable.teacher_id, teacherIds))
+      .groupBy(sessionsTable.teacher_id, sessionsTable.student_id);
     for (const row of counts) {
       assignmentCounts[row.teacher_id] = (assignmentCounts[row.teacher_id] ?? 0) + 1;
     }
