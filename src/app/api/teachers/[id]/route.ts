@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { sanitizeError } from "@/lib/api-error";
 import {
   studentsTable,
-  teacherStudentAssignmentsTable,
+  sessionsTable,
   usersTable,
 } from "@/db/schema";
 import { getApiContext } from "@/features/auth/api-context";
@@ -38,33 +38,24 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 
   if (!teacher) return Response.json({ error: "Not found" }, { status: 404 });
 
-  // Current assigned students
-  const assignments = await db
+  // Students this teacher has recorded sessions with (distinct)
+  const sessionStudents = await db
     .select({
-      student_id: teacherStudentAssignmentsTable.student_id,
-      start_date: teacherStudentAssignmentsTable.start_date,
+      student_id: sessionsTable.student_id,
       student_id_2: studentsTable.id,
       student_name: studentsTable.name,
       student_gender: studentsTable.gender,
       student_memorized_juz_count: studentsTable.memorized_juz_count,
       student_status: studentsTable.status,
     })
-    .from(teacherStudentAssignmentsTable)
-    .leftJoin(
-      studentsTable,
-      eq(teacherStudentAssignmentsTable.student_id, studentsTable.id),
-    )
-    .where(
-      and(
-        eq(teacherStudentAssignmentsTable.teacher_id, id),
-        isNull(teacherStudentAssignmentsTable.end_date),
-      ),
-    )
-    .orderBy(asc(teacherStudentAssignmentsTable.start_date));
+    .from(sessionsTable)
+    .leftJoin(studentsTable, eq(sessionsTable.student_id, studentsTable.id))
+    .where(eq(sessionsTable.teacher_id, id))
+    .groupBy(sessionsTable.student_id, studentsTable.id, studentsTable.name, studentsTable.gender, studentsTable.memorized_juz_count, studentsTable.status);
 
-  const shapedAssignments = assignments.map((a) => ({
+  const shapedAssignments = sessionStudents.map((a) => ({
     student_id: a.student_id,
-    start_date: a.start_date,
+    start_date: "",
     students: {
       id: a.student_id_2,
       name: a.student_name,
