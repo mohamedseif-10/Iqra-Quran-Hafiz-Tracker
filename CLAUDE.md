@@ -156,6 +156,7 @@ DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supaba
 - **Phone validation**: guardian phones must match the Egyptian format `^01[0125]\d{8}$` (11 digits, prefixes 010/011/012/015). Enforced server-side in `validateStudentPayload` and client-side in the new/edit student forms.
 - **Timezone**: `todayDateString()` in `@/lib/utils` uses `Africa/Cairo` for date determination (attendance "today" rolls over at midnight Cairo time, not UTC).
 - `docs/plans/00-overview.md` and the numbered plan files describe the intended build sequence; `docs/Quran-hafiz-tracker-design.md` is the full spec that section references (e.g. "§6.1.1") point to.
+- **Responsive tables**: list tables use a dual-render pattern — a `<table>` for `sm+` screens and a card-based layout for mobile (`<640px`). See `admin-ijazat-table.tsx` for the established pattern (`hidden sm:block` table + `sm:hidden` cards). The admin ijazat page uses a vertical stack (form on top, log below) rather than a side-by-side grid.
 
 ## Testing
 
