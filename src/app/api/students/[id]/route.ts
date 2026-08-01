@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
-import { and, eq, isNull, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import {
   studentsTable,
-  teacherStudentAssignmentsTable,
   initialMemorizationTable,
   sessionsTable,
   attendanceTable,
@@ -36,41 +35,32 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 
     if (!student) return Response.json({ error: "Not found" }, { status: 404 });
 
-    // Role-scope check for teachers
+    // Role-scope check for teachers (gender-only, no assignment check)
     if (appUser.role === "teacher") {
       if (!appUser.can_view_all_genders && student.gender !== appUser.gender) {
         return Response.json({ error: "Forbidden" }, { status: 403 });
       }
-      const [assign] = await db
-        .select({ id: teacherStudentAssignmentsTable.id })
-        .from(teacherStudentAssignmentsTable)
-        .where(
-          and(
-            eq(teacherStudentAssignmentsTable.teacher_id, appUser.id),
-            eq(teacherStudentAssignmentsTable.student_id, id),
-            isNull(teacherStudentAssignmentsTable.end_date),
-          ),
-        )
-        .limit(1);
-      if (!assign) return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Active teachers for this student
-    const activeAssignments = await db
+    // Teachers who have recorded sessions with this student (distinct)
+    const teacherRows = await db
       .select({
-        id: teacherStudentAssignmentsTable.id,
-        teacher_id: teacherStudentAssignmentsTable.teacher_id,
-        start_date: teacherStudentAssignmentsTable.start_date,
+        teacher_id: sessionsTable.teacher_id,
         teacher_name: usersTable.name,
       })
-      .from(teacherStudentAssignmentsTable)
-      .leftJoin(usersTable, eq(teacherStudentAssignmentsTable.teacher_id, usersTable.id))
-      .where(
-        and(
-          eq(teacherStudentAssignmentsTable.student_id, id),
-          isNull(teacherStudentAssignmentsTable.end_date),
-        ),
-      );
+      .from(sessionsTable)
+      .leftJoin(usersTable, eq(sessionsTable.teacher_id, usersTable.id))
+      .where(eq(sessionsTable.student_id, id))
+      .groupBy(sessionsTable.teacher_id, usersTable.name);
+    const activeAssignments = teacherRows
+      .filter((r) => r.teacher_name)
+      .map((r, i) => ({
+        id: `session-${r.teacher_id}`,
+        teacher_id: r.teacher_id,
+        start_date: "",
+        teacher_name: r.teacher_name!,
+        _index: i,
+      }));
 
     // Initial memorization
     const initialMem = await db
@@ -107,18 +97,6 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     if (!existingStudent) return Response.json({ error: "Not found" }, { status: 404 });
 
     if (appUser.role === "teacher") {
-      const [assign] = await db
-        .select({ id: teacherStudentAssignmentsTable.id })
-        .from(teacherStudentAssignmentsTable)
-        .where(
-          and(
-            eq(teacherStudentAssignmentsTable.teacher_id, appUser.id),
-            eq(teacherStudentAssignmentsTable.student_id, id),
-            isNull(teacherStudentAssignmentsTable.end_date),
-          ),
-        )
-        .limit(1);
-      if (!assign) return Response.json({ error: "Forbidden" }, { status: 403 });
       if (!appUser.can_view_all_genders && existingStudent.gender !== appUser.gender) {
         return Response.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -241,7 +219,6 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     await db.delete(ijazatTable).where(eq(ijazatTable.student_id, id));
     await db.delete(attendanceTable).where(eq(attendanceTable.student_id, id));
     await db.delete(sessionsTable).where(eq(sessionsTable.student_id, id));
-    await db.delete(teacherStudentAssignmentsTable).where(eq(teacherStudentAssignmentsTable.student_id, id));
 
     await db.delete(studentsTable).where(eq(studentsTable.id, id));
 

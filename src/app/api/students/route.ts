@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { and, count, desc, asc, eq, gte, lte, gt, lt, ilike, or, isNull, inArray, type SQL, type AnyColumn } from "drizzle-orm";
-import { studentsTable, teacherStudentAssignmentsTable, initialMemorizationTable } from "@/db/schema";
-import { getAssignedStudentIds } from "@/features/auth/student-access";
+import { studentsTable, sessionsTable, initialMemorizationTable } from "@/db/schema";
 import { getLevelInfo, countsFromInitialMemorization, validateInitialMemorization, validateStudentPayload } from "@/domain/students";
 import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { sanitizeError } from "@/lib/api-error";
@@ -35,15 +34,9 @@ export async function GET(request: NextRequest) {
   // Build dynamic conditions array
   const conditions: SQL[] = [];
 
-  // Role-scoping: teacher sees only assigned students
+  // Role-scoping: teacher sees all students matching their gender
+  // (or all students if can_view_all_genders is set). Assignments are no longer used.
   if (appUser.role === "teacher") {
-    const myStudentIds = await getAssignedStudentIds(db, appUser.id);
-    if (myStudentIds.length === 0) {
-      return Response.json({ data: [], count: 0, page, pageSize });
-    }
-    conditions.push(inArray(studentsTable.id, myStudentIds));
-
-    // Gender scoping
     if (!appUser.can_view_all_genders && appUser.gender) {
       conditions.push(eq(studentsTable.gender, appUser.gender));
     }
@@ -99,9 +92,13 @@ export async function GET(request: NextRequest) {
     conditions.push(gte(studentsTable.last_session_date, toDateString(cutoff)));
   }
 
-  // Admin-only teacher_id filter
+  // Admin-only teacher_id filter: students who have sessions with this teacher
   if (appUser.role === "admin" && teacherId) {
-    const ids = await getAssignedStudentIds(db, teacherId);
+    const studentIdsWithTeacher = await db
+      .select({ student_id: sessionsTable.student_id })
+      .from(sessionsTable)
+      .where(eq(sessionsTable.teacher_id, teacherId));
+    const ids = [...new Set(studentIdsWithTeacher.map((r) => r.student_id))];
     if (ids.length === 0) return Response.json({ data: [], count: 0, page, pageSize });
     conditions.push(inArray(studentsTable.id, ids));
   }
@@ -222,16 +219,6 @@ export async function POST(request: NextRequest) {
         pages: r.pages ?? null,
       }));
       await db.insert(initialMemorizationTable).values(rowsToInsert);
-    }
-
-    // Teacher self-add: auto-create active assignment
-    if (appUser.role === "teacher") {
-      await db.insert(teacherStudentAssignmentsTable).values({
-        teacher_id: appUser.id,
-        student_id: student.id,
-        start_date: enrollment_date ?? todayDateString(),
-        created_by: appUser.id,
-      });
     }
 
     await recalculateStudentSummary(db, student.id);

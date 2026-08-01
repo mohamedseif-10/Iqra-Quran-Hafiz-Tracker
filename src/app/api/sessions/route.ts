@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 
 import { sessionsTable, surahsTable, studentsTable } from "@/db/schema";
-import { getAssignedStudentIds, canAccessStudent } from "@/features/auth/student-access";
+import { canAccessStudent } from "@/features/auth/student-access";
 import { validateSessionPayload } from "@/domain/sessions";
 import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { recalculateStudentAttendance } from "@/features/attendance/server/recalc";
@@ -24,9 +24,8 @@ export async function GET(request: NextRequest) {
   const conditions = [];
 
   if (appUser.role === "teacher") {
-    const ids = await getAssignedStudentIds(db, appUser.id);
-    if (ids.length === 0) return Response.json([]);
-    conditions.push(inArray(sessionsTable.student_id, ids));
+    // A teacher sees sessions they recorded, for students they can access
+    // (gender-scoped). No assignment check.
     conditions.push(eq(sessionsTable.teacher_id, appUser.id));
 
     // Gender scoping (E4): a teacher who can't view all genders only sees

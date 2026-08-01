@@ -3,9 +3,9 @@ import { getDb } from "@/db/client";
 import {
   studentsTable,
   sessionsTable,
-  teacherStudentAssignmentsTable,
+  usersTable,
 } from "@/db/schema";
-import { and, asc, desc, eq, gte, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, or, count } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { BarChart3, AlertTriangle, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -30,39 +30,27 @@ export default async function TeacherReportsPage() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = toDateString(thirtyDaysAgo);
 
-  // My active student assignments
-  const myAssignments = await db
-    .select({ student_id: teacherStudentAssignmentsTable.student_id })
-    .from(teacherStudentAssignmentsTable)
-    .where(
-      and(
-        eq(teacherStudentAssignmentsTable.teacher_id, user.id),
-        isNull(teacherStudentAssignmentsTable.end_date),
-      ),
-    );
+  // Gender scoping: fetch teacher's gender settings
+  const [teacherUser] = await db
+    .select({
+      gender: usersTable.gender,
+      can_view_all_genders: usersTable.can_view_all_genders,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, user.id))
+    .limit(1);
 
-  const myStudentIds = myAssignments.map((a) => a.student_id);
+  // Build gender-scoped student conditions (no assignment check)
+  const studentConditions = [
+    eq(studentsTable.status, "active"),
+  ];
+  if (teacherUser && !teacherUser.can_view_all_genders && teacherUser.gender) {
+    studentConditions.push(eq(studentsTable.gender, teacherUser.gender));
+  }
 
   const monthName = now.toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
 
-  if (myStudentIds.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="size-6 text-primary" />
-          <div>
-            <h2 className="text-xl font-bold">تقاريري</h2>
-            <p className="text-sm text-muted-foreground">{monthName}</p>
-          </div>
-        </div>
-        <div className="card flex flex-col items-center gap-3 py-16 text-center">
-          <p className="text-muted-foreground">لا يوجد طلاب مسندون لك حالياً</p>
-        </div>
-      </div>
-    );
-  }
-
-  const [myStudents, mySessions, atRisk] = await Promise.all([
+  const [myStudents, mySessions, atRisk, studentCountResult] = await Promise.all([
     db
       .select({
         id: studentsTable.id,
@@ -74,7 +62,7 @@ export default async function TeacherReportsPage() {
         last_session_date: studentsTable.last_session_date,
       })
       .from(studentsTable)
-      .where(inArray(studentsTable.id, myStudentIds))
+      .where(and(...studentConditions))
       .orderBy(desc(studentsTable.memorized_juz_count)),
     db
       .select({ rating: sessionsTable.rating })
@@ -94,8 +82,7 @@ export default async function TeacherReportsPage() {
       .from(studentsTable)
       .where(
         and(
-          inArray(studentsTable.id, myStudentIds),
-          eq(studentsTable.status, "active"),
+          ...studentConditions,
           or(
             isNull(studentsTable.last_session_date),
             lt(studentsTable.last_session_date, thirtyDaysAgoStr),
@@ -103,7 +90,13 @@ export default async function TeacherReportsPage() {
         ),
       )
       .orderBy(asc(studentsTable.last_session_date)),
+    db
+      .select({ c: count() })
+      .from(studentsTable)
+      .where(and(...studentConditions)),
   ]);
+
+  const myStudentCount = studentCountResult[0]?.c ?? 0;
 
   const ratings = {
     excellent: mySessions.filter((s) => s.rating === "excellent").length,
@@ -125,7 +118,7 @@ export default async function TeacherReportsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { value: myStudentIds.length, label: "طالب مسند",        color: "text-primary" },
+          { value: myStudentCount, label: "طالب",        color: "text-primary" },
           { value: mySessions.length,   label: "جلسة هذا الشهر",   color: "text-[#854d0e]" },
           { value: atRisk.length,       label: "بحاجة متابعة",      color: atRisk.length > 0 ? "text-[#dc2626]" : "text-[#16a34a]" },
         ].map(({ value, label, color }) => (

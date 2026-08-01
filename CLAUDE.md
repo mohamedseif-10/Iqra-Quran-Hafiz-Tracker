@@ -101,11 +101,15 @@ The established pattern (see `src/app/api/students/route.ts`) is:
 2. Get the Drizzle client: `const db = getDb()` → 500 if null.
 3. Look up the app user via `getApiAppUser(db, user.id)` → 403 if not found or inactive.
 4. **Enforce scoping in code, not via RLS**, because the Drizzle client bypasses RLS. The rules:
-   - A `teacher` sees only students actively assigned to them (`teacher_student_assignments` where `end_date IS NULL`).
+   - A `teacher` sees all students matching their own `gender` (or all students if `can_view_all_genders = true`). The assignment system (`teacher_student_assignments`) has been removed — access is gender-only.
    - Gender scoping: a teacher with `can_view_all_genders = false` sees only students matching their own `gender`.
    - `admin` sees everything.
-5. Shared authorization helpers live in `src/features/auth/student-access.ts` (`getApiAppUser`, `getAssignedStudentIds`, `canAccessStudent`). All take `Db` as the first argument. Prefer these over re-implementing the checks inline.
+5. Shared authorization helpers live in `src/features/auth/student-access.ts` (`getApiAppUser`, `canAccessStudent`). All take `Db` as the first argument. Prefer these over re-implementing the checks inline. `canAccessStudent` checks gender only (admin → true; teacher → true if gender matches or `can_view_all_genders`).
 6. Shared API context helper: `getApiContext()` in `src/features/auth/api-context.ts` returns `{ ok: true, db, appUser }` or `{ ok: false, response }` — eliminates auth boilerplate. All API routes use it.
+
+### Teacher attribution
+
+Teacher-student relationships are tracked **per-session** via `sessions.teacher_id` (NOT NULL, FK to `users`). The `teacher_student_assignments` table has been dropped (migration 0004). When a teacher records a session, their `user.id` is automatically stored as `teacher_id`. Admin pages that show "which teachers work with this student" derive the list from distinct `sessions.teacher_id` values.
 
 ### Progress computation (the core domain logic)
 
@@ -120,7 +124,7 @@ For each of the 30 juz it computes ayah-level coverage by intersecting recorded 
 
 ### Routing structure
 
-Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `app/api/*`. Sidebar/nav is data-driven from `src/lib/nav.ts` (`getNavItems(role)`) — add a nav entry there, not in a layout. Admin and teacher have parallel feature sets (students, sessions, ijazat, attendance, reports) with different scoping.
+Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `app/api/*`. Sidebar/nav is data-driven from `src/lib/nav.ts` (`getNavItems(role)`) — add a nav entry there, not in a layout. Admin and teacher have parallel feature sets (students, sessions, ijazat, attendance, reports) with different scoping. There is no longer an assignments page — teacher-student relationships are implicit via session records.
 
 ### Database schema & migrations
 
@@ -129,7 +133,7 @@ Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `ap
 - **RLS policies**: `src/db/rls.sql` — applied manually once (Drizzle does not manage RLS). A copy is also in `supabase/legacy/rls.sql`.
 - **Seed data**: `supabase/legacy/seed.sql` — 114 surahs + 30 juz boundaries. Apply once on a fresh database.
 - **Legacy schema**: `supabase/legacy/schema.sql` — the original full schema, superseded by Drizzle. See `supabase/legacy/README.md`.
-- Key tables: `users`, `students`, `teacher_student_assignments`, `sessions`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`, `juz_pages`.
+- Key tables: `users`, `students`, `sessions`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`, `juz_pages`. The `teacher_student_assignments` table has been dropped (migration 0004) — assignments were removed in favor of gender-only scoping + session-level teacher attribution via `sessions.teacher_id`.
 - **`juz_pages`** maps each page within each juz to exact surah + ayah range(s) (665 rows; some pages span multiple surahs → one row per surah). Seeded from `juz_pages.json` via `scripts/seed-juz-pages.js`. Used by progress computation for partial init-mem coverage. Juz page counts vary (most 20, some 21, Juz 30 has 23) — hence `initial_memorization.pages` CHECK is 1-23.
 - **`initial_memorization.pages`** (smallint, nullable, CHECK 1-23): when set, the row represents partial memorization of that juz (N pages memorized, not the full juz). When null/absent, the row = full juz memorized.
 

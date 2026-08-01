@@ -88,33 +88,6 @@ export const studentsTable = pgTable(
   ],
 );
 
-export const teacherStudentAssignmentsTable = pgTable(
-  "teacher_student_assignments",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    teacher_id: uuid("teacher_id")
-      .notNull()
-      .references(() => usersTable.id),
-    student_id: uuid("student_id")
-      .notNull()
-      .references(() => studentsTable.id),
-    start_date: date("start_date")
-      .notNull()
-      .default(sql`CURRENT_DATE`),
-    end_date: date("end_date"),
-    created_by: uuid("created_by").references(() => usersTable.id),
-    created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  },
-  (t) => [
-    uniqueIndex("uniq_active_assignment")
-      .on(t.teacher_id, t.student_id)
-      .where(sql`end_date IS NULL`),
-    index("idx_active_assignments")
-      .on(t.student_id)
-      .where(sql`end_date IS NULL`),
-  ],
-);
-
 export const surahsTable = pgTable("surahs", {
   id: integer("id").primaryKey(),
   name_arabic: varchar("name_arabic", { length: 50 }).notNull(),
@@ -305,7 +278,6 @@ export type User = typeof usersTable.$inferSelect;
 export type NewUser = typeof usersTable.$inferInsert;
 export type Student = typeof studentsTable.$inferSelect;
 export type NewStudent = typeof studentsTable.$inferInsert;
-export type TeacherStudentAssignment = typeof teacherStudentAssignmentsTable.$inferSelect;
 export type Surah = typeof surahsTable.$inferSelect;
 export type JuzBoundary = typeof juzBoundariesTable.$inferSelect;
 export type Session = typeof sessionsTable.$inferSelect;
