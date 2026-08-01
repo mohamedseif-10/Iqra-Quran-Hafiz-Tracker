@@ -6,6 +6,47 @@ inline). This is a record of *what changed and when*, not a status report.
 
 ---
 
+## 2026-08-01 — Redesign admin ijazat page: vertical layout + responsive table
+
+Branch: `fix-ijaza-page-UI` (off `refactor/drop-teacher-assignments`).
+
+### Rationale
+
+The admin ijazat page used a two-column grid (list on one side, form on the
+other) that was cramped on tablets and broken on mobile. The user wanted a
+simpler vertical flow: the grant form first, then the ijazat log below it,
+working well across mobile, tablet, and laptop.
+
+### What changed
+
+- **Page layout** (`src/app/(admin)/admin/ijazat/page.tsx`): replaced the
+  two-column `lg:grid-cols-[1fr_380px]` grid with a vertical stack —
+  form section (constrained to `max-w-2xl`, centered) on top, then the
+  سجل الإجازات table below. Removed the per-section `<h3>` duplication;
+  the form section header uses a `Plus` icon, the log header uses a
+  `BookOpen` icon.
+- **Responsive ijazat table** (`src/features/ijazat/components/admin-ijazat-table.tsx`):
+  - **Desktop/tablet (sm+)**: unchanged table view with horizontal scroll fallback.
+  - **Mobile (<640px)**: card-based layout — each ijaza renders as a card
+    with student name (link), type badge, date, sheikh name, and notes
+    stacked vertically; the delete button sits in the top corner.
+  - Extracted a shared `IjazaTypeBadge` component and a `resolveStudent`
+    helper to deduplicate the array-or-object student resolution logic
+    between the two views.
+
+### Files changed (2 files)
+
+- `src/app/(admin)/admin/ijazat/page.tsx` — vertical stack layout.
+- `src/features/ijazat/components/admin-ijazat-table.tsx` — responsive
+  table/card dual rendering.
+
+### Verification
+
+- `npm run lint` — 0 errors, 0 warnings
+- `npm run build` — passes
+
+---
+
 ## 2026-08-01 — Remove teacher-student assignment system; session-level teacher attribution
 
 Branch: `refactor/drop-teacher-assignments` (off `feature/student-form-improvements`).
