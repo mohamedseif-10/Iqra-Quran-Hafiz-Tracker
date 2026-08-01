@@ -90,13 +90,19 @@ admin-managed assignments. Teacher attribution is now recorded per-session via
 - `src/lib/nav.ts` — removed "إسناد الطلاب" nav entry and `ClipboardList` import.
 - Deleted: `src/app/api/assignments/` (2 files), `src/app/api/students/[id]/assignments/`
   (1 file), `src/app/(admin)/admin/assignments/` (2 files).
+- `src/db/schema.ts` — removed `teacherStudentAssignmentsTable` definition and
+  `TeacherStudentAssignment` type export.
+- `drizzle/migrations/0004_nifty_apocalypse.sql` — new migration: `DROP TABLE
+  "teacher_student_assignments" CASCADE;` (+ snapshot/journal entries).
 
 ### DB
 
-No migration needed — `sessions.teacher_id` already existed (NOT NULL, FK to
-users). The `teacher_student_assignments` table remains in the DB schema
-(`src/db/schema.ts`) for historical data but is no longer referenced by any
-application code.
+- `sessions.teacher_id` already existed (NOT NULL, FK to users) — no migration
+  needed for the attribution change itself.
+- **Migration 0004** (`0004_nifty_apocalypse.sql`): `DROP TABLE
+  "teacher_student_assignments" CASCADE;` — the table is removed from both the
+  live DB and `src/db/schema.ts` (definition + `TeacherStudentAssignment` type
+  export). Apply via `npm run db:push` or Supabase SQL editor.
 
 ### Verification
 
