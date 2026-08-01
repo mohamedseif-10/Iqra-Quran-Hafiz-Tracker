@@ -155,6 +155,34 @@ export const sessionsTable = pgTable(
       .notNull()
       .references(() => usersTable.id),
     session_date: date("session_date").notNull(),
+    // Overall rating for the session (aggregates all items).
+    overall_rating: text("overall_rating").notNull(),
+    notes: text("notes"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    check(
+      "sessions_overall_rating_check",
+      sql`${t.overall_rating} IN ('excellent', 'good', 'weak')`,
+    ),
+    index("idx_sessions_student").on(t.student_id, t.session_date),
+    index("idx_sessions_teacher").on(t.teacher_id, t.session_date),
+  ],
+);
+
+/**
+ * Session items — each session contains one or more items representing
+ * a Quran portion (surah + ayah range) that was recited. An item can be
+ * either "new_memorization" (تسميع جديد) or "review" (مراجعة). This allows
+ * a single session to include both new memorization and review portions.
+ */
+export const sessionItemsTable = pgTable(
+  "session_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    session_id: uuid("session_id")
+      .notNull()
+      .references(() => sessionsTable.id, { onDelete: "cascade" }),
     session_type: text("session_type").notNull(),
     surah_id: integer("surah_id")
       .notNull()
@@ -164,18 +192,17 @@ export const sessionsTable = pgTable(
     rating: text("rating").notNull(),
     pages: integer("pages"),
     notes: text("notes"),
-    created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [
     check(
-      "sessions_session_type_check",
+      "session_items_type_check",
       sql`${t.session_type} IN ('new_memorization', 'review')`,
     ),
-    check("sessions_rating_check", sql`${t.rating} IN ('excellent', 'good', 'weak')`),
-    check("sessions_pages_check", sql`${t.pages} IS NULL OR ${t.pages} >= 0`),
-    check("sessions_valid_ayah_range", sql`${t.from_ayah} <= ${t.to_ayah}`),
-    index("idx_sessions_student").on(t.student_id, t.session_date),
-    index("idx_sessions_teacher").on(t.teacher_id, t.session_date),
+    check("session_items_rating_check", sql`${t.rating} IN ('excellent', 'good', 'weak')`),
+    check("session_items_pages_check", sql`${t.pages} IS NULL OR ${t.pages} >= 0`),
+    check("session_items_valid_ayah_range", sql`${t.from_ayah} <= ${t.to_ayah}`),
+    index("idx_session_items_session").on(t.session_id),
+    index("idx_session_items_student_date").on(t.session_id),
   ],
 );
 
@@ -282,6 +309,8 @@ export type Surah = typeof surahsTable.$inferSelect;
 export type JuzBoundary = typeof juzBoundariesTable.$inferSelect;
 export type Session = typeof sessionsTable.$inferSelect;
 export type NewSession = typeof sessionsTable.$inferInsert;
+export type SessionItem = typeof sessionItemsTable.$inferSelect;
+export type NewSessionItem = typeof sessionItemsTable.$inferInsert;
 export type Attendance = typeof attendanceTable.$inferSelect;
 export type NewAttendance = typeof attendanceTable.$inferInsert;
 export type Ijaza = typeof ijazatTable.$inferSelect;

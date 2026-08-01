@@ -213,6 +213,7 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
 
       <StudentProfileTabs
         studentId={id}
+        studentName={student.name}
         initMemValue={initMemValue}
         isAdmin
       />

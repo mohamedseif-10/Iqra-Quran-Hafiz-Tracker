@@ -1,8 +1,264 @@
+<!-- markdownlint-disable MD022 MD024 MD031 MD032 MD040 MD060 -->
 # Changelog
 
 Append-only audit log of development changes. New entries are added at the
 top. Existing entries are never edited (except to fix factual errors, noted
 inline). This is a record of *what changed and when*, not a status report.
+
+---
+
+## 2026-08-01 — Session form: empty items + future date lock
+
+### Rationale
+
+Two changes to the session form:
+
+1. **Empty default items**: the session form pre-filled the first item with
+   surah 1 (الفاتحة) and its full ayah range (1–7). The user wanted the form
+   to start empty — the teacher adds only the items they actually recited,
+   one by one, and can remove all of them.
+
+2. **Future date lock**: the session date picker allowed selecting future
+   dates. Sessions represent past events, so the date should not exceed
+   today. Added both a frontend `max` attribute and a server-side validation.
+
+### What changed
+
+#### Empty default items
+
+- **`session-form.tsx`**: `makeDefaultItem()` (pre-filled surah + ayah range)
+  replaced with `makeEmptyItem()` — surah_id=0, empty ayah fields. Items
+  state initializes to `[]` in create mode. Post-submit reset clears items
+  to `[]`. The surah `<select>` now has a disabled placeholder option
+  ("— اختر السورة —") at value 0. The delete (trash) button is always
+  visible on every item (removed the `items.length > 1` guard). Added an
+  empty-state message when no items exist. Added validation for zero items
+  ("يجب إضافة عنصر واحد على الأقل للجلسة"). Removed the localStorage
+  surah-restore `useEffect` and the unused `useEffect` import — no longer
+  relevant since items start empty.
+
+#### Future date lock
+
+- **`session-form.tsx`**: added `max={today}` to the session date `<input>`,
+  preventing future dates in the browser's date picker.
+- **`src/domain/sessions.ts`**: `validateSessionPayload` now accepts an
+  optional `todayDate` parameter. When provided, rejects `session_date`
+  after `todayDate` with "لا يمكن تسجيل جلسة في تاريخ مستقبلي".
+- **`src/app/api/sessions/route.ts`**: passes `todayDateString()` as the
+  third argument to `validateSessionPayload` (POST).
+- **`src/app/api/sessions/[id]/route.ts`**: passes `todayDateString()` as
+  the third argument to `validateSessionPayload` (PUT).
+- **`src/domain/sessions.test.ts`**: 3 new tests — rejects future date,
+  accepts today's date, confirms no check when `todayDate` is omitted.
+
+### Files changed
+
+- `src/features/sessions/components/session-form.tsx` — empty items + max date
+- `src/domain/sessions.ts` — future date validation
+- `src/domain/sessions.test.ts` — 3 new tests
+- `src/app/api/sessions/route.ts` — pass todayDate to validation
+- `src/app/api/sessions/[id]/route.ts` — pass todayDate to validation
+
+---
+
+## 2026-08-01 — Attendance simplification + recommended review in session form
+
+### Rationale
+
+Two changes in this entry:
+
+1. **Attendance simplification**: the old attendance system tracked absences,
+   excused days, holidays, and supported manual attendance entry. This was
+   unnecessarily complex for the halaqa's needs — attendance should be
+   auto-derived from sessions only (has session = attended, no session = no
+   record). The user requested removing absence tracking, removing manual
+   entry, and replacing the attendance rate with two simple cards: total
+   attendance count + attendance this month.
+
+2. **Recommended review in session form**: when a teacher records a new
+   session, they need to see what the student should review that day (the
+   spaced-repetition schedule). The "المراجعة المجدولة" was only visible as
+   a separate tab in the student profile. Adding it inline in the session
+   form lets the teacher see the recommended review while recording the
+   session.
+
+### What changed
+
+#### Attendance simplification
+
+- **`src/domain/attendance.ts`**: rewritten. `computeAttendanceCalendar` now
+  returns only present days (days with sessions) — no absent/excused/holiday
+  entries. `computeDayAttendance` returns `"present"` or `null` (no `"absent"`).
+  Removed `AutoAttendanceStatus` absent type. Fridays still excluded.
+  Status-aware logic (paused/withdrawn/graduated) preserved.
+- **`src/features/attendance/server/recalc.ts`**: rewritten. Only inserts
+  present-day rows. Removed manual row preservation logic — all rows are
+  rebuilt from sessions.
+- **`src/app/api/students/[id]/attendance/route.ts`**: removed POST (manual
+  entry) and DELETE (manual removal) endpoints. GET now returns
+  `{ records, stats: { total, thisMonth } }` instead of the old
+  `attendance_rate`-based stats.
+- **`src/features/attendance/components/student-attendance-tab.tsx`**: deleted.
+  The attendance tab was removed from the student profile.
+- **`src/features/students/components/student-profile-tabs.tsx`**: removed
+  the "الحضور" tab and its `StudentAttendanceTab` import. Tabs are now:
+  progress, review, sessions, ijazat.
+- **`src/features/sessions/components/student-sessions-tab.tsx`**: added two
+  attendance stats cards at the top (إجمالي الحضور + حضور هذا الشهر), fetched
+  from the attendance API. Refreshed after session edit/delete.
+- **`src/domain/attendance.test.ts`**: rewritten for the new present-only
+  logic. 15 tests covering calendar (present days only, Fridays excluded,
+  paused/withdrawn/graduated) and `computeDayAttendance` (present vs null).
+
+#### Recommended review in session form
+
+- **`src/features/sessions/components/recommended-review.tsx`** (NEW): a
+  self-contained component that fetches the spaced-repetition review schedule
+  for a given student + date from `/api/students/[id]/review?date=...` and
+  displays it grouped by rule (1-day, 7-day, 30-day) with color-coded
+  sections. Shows surah name, ayah range, and original memorization date for
+  each item. Displays a helpful empty-state message when nothing is due.
+- **`src/features/sessions/components/session-form.tsx`**: imports
+  `RecommendedReview` and renders it between the session info card and the
+  session items card (create mode only, not edit mode). Updates live when
+  the teacher changes the student or session date.
+
+### Files changed
+
+- `src/domain/attendance.ts` — rewritten (present-only)
+- `src/domain/attendance.test.ts` — rewritten for new logic
+- `src/features/attendance/server/recalc.ts` — rewritten (present-only)
+- `src/features/attendance/components/student-attendance-tab.tsx` — deleted
+- `src/app/api/students/[id]/attendance/route.ts` — removed POST/DELETE, new stats
+- `src/features/students/components/student-profile-tabs.tsx` — removed attendance tab
+- `src/features/sessions/components/student-sessions-tab.tsx` — added attendance stats cards
+- `src/features/sessions/components/recommended-review.tsx` — NEW
+- `src/features/sessions/components/session-form.tsx` — embedded RecommendedReview
+
+---
+
+## 2026-08-01 — Sessions refactor: multi-item sessions + spaced repetition review
+
+### Rationale
+
+The old sessions schema stored a single surah + ayah range per session row
+(`session_type`, `surah_id`, `from_ayah`, `to_ayah`, `rating`, `pages`,
+`notes` all directly on `sessions`). This was limiting: a teacher could not
+record multiple surahs in one session, there was no spaced repetition review
+system, and the per-session rating didn't reflect individual items. The
+refactor splits sessions into a parent-child model and adds a review
+scheduling system.
+
+### What changed
+
+#### Schema (migration 0005)
+
+- **New `session_items` table**: each row represents one Quran portion
+  (surah + ayah range) recited in a session. Fields: `session_type`
+  (`new_memorization` | `review`), `surah_id`, `from_ayah`, `to_ayah`,
+  `rating`, `pages`, `notes`. FK to `sessions` with `ON DELETE CASCADE`.
+- **`sessions` table simplified**: now holds only `student_id`,
+  `teacher_id`, `session_date`, `overall_rating`, `notes`, `created_at`.
+  Old columns (`session_type`, `surah_id`, `from_ayah`, `to_ayah`,
+  `rating`, `pages`) dropped.
+- **Data migration**: existing session rows migrated to `session_items`
+  (one item per old session). `overall_rating` copied from old `rating`.
+
+#### Domain layer
+
+- **`src/domain/sessions.ts`**: `validateSessionPayload` rewritten for
+  multi-item validation. Now accepts `items[]` array with per-item
+  validation (session_type, surah_id, ayah range, rating, pages, notes).
+  Session-level fields: `student_id`, `session_date`, `overall_rating`,
+  `notes`.
+- **`src/domain/review.ts`** (NEW): pure spaced repetition logic.
+  `computeReviewSchedule(targetDate, newMemorizationItems)` computes which
+  items should be reviewed on a target date using three look-back rules:
+  1-day (المراجعة القريبة), 7-day (المراجعة المتوسطة), 30-day
+  (المراجعة التراكمية). Only `new_memorization` items trigger reviews.
+  Deduplicates items matching multiple rules. `groupReviewsByRule` groups
+  results for display.
+
+#### API routes
+
+- **`POST /api/sessions`**: creates session + items in a transaction.
+  Validates surah IDs, calls `validateSessionPayload`, inserts parent
+  session then child items, recalculates student summary + attendance.
+- **`GET /api/sessions`**: returns sessions with nested items. Filters
+  by `session_type` on items (not sessions).
+- **`GET /api/sessions/[id]`**: returns single session with items.
+- **`PUT /api/sessions/[id]`**: replaces all items (delete old + insert
+  new in a transaction). Recalculates both old and new student if student
+  changed.
+- **`DELETE /api/sessions/[id]`**: deletes session (items cascade).
+- **`GET /api/students/[id]/sessions`**: returns sessions with nested
+  items for student profile.
+- **`GET /api/students/[id]/progress`**: fetches from `session_items`
+  join instead of `sessions` directly.
+- **`GET /api/students/[id]/review`** (NEW): returns spaced repetition
+  schedule for a date, grouped by rule (1-day, 7-day, 30-day).
+
+#### UI
+
+- **`session-form.tsx`**: rewritten for multi-item entry. Supports
+  adding/removing items, each with its own surah, ayah range, type, rating,
+  pages, and notes. Expandable item cards with preview. Remembers
+  last-used surah per student (localStorage). Added edit mode: accepts
+  `editSessionId` + `initialData` props, submits via PUT instead of POST,
+  shows "تعديل الجلسة" header and "إلغاء التعديل" cancel button.
+- **`student-sessions-tab.tsx`**: rewritten to display sessions with
+  nested items. Each session shows date, overall rating, teacher, notes,
+  and a list of items (type badge, surah, ayah range, per-item rating,
+  pages, notes). Edit (Pencil) and delete (Trash) buttons per session.
+  Edit mode renders `SessionForm` inline above the list. Fetches surahs
+  from `/api/surahs` on first edit.
+- **`review-calendar.tsx`** (NEW): date picker + grouped review display
+  for the "المراجعة المجدولة" tab. Shows items due for 1-day, 7-day, and
+  30-day review with color-coded sections.
+- **`student-profile-tabs.tsx`**: added "المراجعة المجدولة" tab between
+  "التقدم" and "الجلسات". Now passes `studentName` to `StudentSessionsTab`.
+- **Admin + teacher dashboards**: updated to use `overall_rating` instead
+  of `rating`. Removed `session_type` references.
+- **Admin + teacher reports**: updated ratings aggregation to use
+  `overall_rating`.
+
+#### Tests
+
+- **`sessions.test.ts`**: 20 tests covering multi-item validation (valid
+  single/multi-item payloads, missing fields, invalid types, ayah range
+  errors, pages validation, notes length limits).
+- **`review.test.ts`** (NEW): 12 tests covering `computeReviewSchedule`
+  (1/7/30-day matching, deduplication, month/year boundaries, leap year,
+  multiple items same date) and `groupReviewsByRule`.
+- **`progress.test.ts`**: updated `SessionRow` mock data to match
+  `session_items` shape.
+
+### Files changed
+
+- `drizzle/migrations/0005_session_items.sql` — new migration
+- `src/db/schema.ts` — added `sessionItemsTable`, modified `sessionsTable`
+- `src/domain/sessions.ts` — rewritten multi-item validation
+- `src/domain/review.ts` — NEW, spaced repetition logic
+- `src/domain/sessions.test.ts` — updated tests
+- `src/domain/review.test.ts` — NEW, review tests
+- `src/domain/progress.test.ts` — updated mock data
+- `src/features/students/server/progress.ts` — reads from `session_items`
+- `src/app/api/sessions/route.ts` — rewritten for multi-item CRUD
+- `src/app/api/sessions/[id]/route.ts` — rewritten for multi-item CRUD
+- `src/app/api/students/[id]/sessions/route.ts` — returns nested items
+- `src/app/api/students/[id]/progress/route.ts` — fetches from `session_items`
+- `src/app/api/students/[id]/review/route.ts` — NEW, review schedule
+- `src/app/(admin)/admin/page.tsx` — uses `overall_rating`
+- `src/app/(admin)/admin/students/[id]/page.tsx` — passes `studentName`
+- `src/app/(teacher)/teacher/page.tsx` — uses `overall_rating`
+- `src/app/(teacher)/teacher/students/[id]/page.tsx` — passes `studentName`
+- `src/app/(teacher)/teacher/reports/page.tsx` — uses `overall_rating`
+- `src/app/(admin)/admin/reports/page.tsx` — uses `overall_rating`
+- `src/features/sessions/components/session-form.tsx` — rewritten + edit mode
+- `src/features/sessions/components/student-sessions-tab.tsx` — rewritten + edit
+- `src/features/sessions/components/review-calendar.tsx` — NEW
+- `src/features/students/components/student-profile-tabs.tsx` — review tab
+- `CLAUDE.md` — updated schema, domain, testing documentation
 
 ---
 

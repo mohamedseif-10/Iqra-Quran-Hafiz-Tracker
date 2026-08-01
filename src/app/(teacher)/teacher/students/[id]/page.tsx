@@ -181,7 +181,7 @@ export default async function TeacherStudentProfilePage({ params }: PageProps) {
         </div>
       </div>
 
-      <StudentProfileTabs studentId={id} initMemValue={initMemValue} />
+      <StudentProfileTabs studentId={id} studentName={student.name} initMemValue={initMemValue} />
     </div>
   );
 }
