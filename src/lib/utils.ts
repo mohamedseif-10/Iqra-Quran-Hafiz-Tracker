@@ -5,9 +5,9 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-/** Format a Date as a YYYY-MM-DD string (A4: single source for this pattern). */
+/** Format a Date as a YYYY-MM-DD string in the Africa/Cairo timezone. */
 export function toDateString(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return date.toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
 }
 
 /**

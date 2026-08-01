@@ -7,7 +7,7 @@ export interface JuzEntry {
   juz_number: number;
   status: "memorized" | "with_ijaza";
   sheikh_name?: string;
-  /** Pages memorized out of 20. null/undefined = full juz. */
+  /** Pages memorized (1-23). null/undefined = full juz. */
   pages?: number | null;
 }
 
@@ -129,7 +129,7 @@ export function InitialMemorizationGrid({ value, onChange, readOnly = false }: I
               <span className="text-sm">إجازة</span>
             </label>
           </div>
-          {/* Pages input — optional, 1-20. Empty = full juz (20 pages). */}
+          {/* Pages input — optional, 1-23. Empty = full juz. */}
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
               عدد الصفحات
@@ -144,7 +144,12 @@ export function InitialMemorizationGrid({ value, onChange, readOnly = false }: I
               value={getEntry(expandedJuz)?.pages ?? ""}
               onChange={(e) => {
                 const val = e.target.value;
-                updateEntry(expandedJuz, { pages: val === "" ? null : Number(val) });
+                if (val === "") {
+                  updateEntry(expandedJuz, { pages: null });
+                } else {
+                  const num = Number(val);
+                  updateEntry(expandedJuz, { pages: Number.isFinite(num) ? num : null });
+                }
               }}
             />
             <p className="text-xs text-muted-foreground mt-1">

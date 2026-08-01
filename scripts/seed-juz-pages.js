@@ -6,7 +6,7 @@
  * The JSON file (juz_pages.json) was built from verified open datasets:
  *   - Per-page Madani mushaf layout (real line/word data from the actual print)
  *   - Ayah-level juz lookup
- * It contains 608 rows mapping each page within each juz to the exact
+ * It contains 665 rows mapping each page within each juz to the exact
  * surah(s) and ayah range(s) on that page.
  */
 /* eslint-disable @typescript-eslint/no-require-imports */

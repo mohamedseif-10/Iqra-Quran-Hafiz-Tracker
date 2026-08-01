@@ -62,7 +62,7 @@ export function validateInitialMemorization(
     if (
       row.pages !== undefined &&
       row.pages !== null &&
-      (typeof row.pages !== "number" || row.pages < 1 || row.pages > 23)
+      (!Number.isFinite(row.pages) || !Number.isInteger(row.pages) || row.pages < 1 || row.pages > 23)
     ) {
       return `عدد الصفحات للجزء ${row.juz_number} يجب أن يكون بين 1 و 23`;
     }
