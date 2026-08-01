@@ -65,7 +65,7 @@ export default async function TeacherReportsPage() {
       .where(and(...studentConditions))
       .orderBy(desc(studentsTable.memorized_juz_count)),
     db
-      .select({ rating: sessionsTable.rating })
+      .select({ overall_rating: sessionsTable.overall_rating })
       .from(sessionsTable)
       .where(
         and(
@@ -99,9 +99,9 @@ export default async function TeacherReportsPage() {
   const myStudentCount = studentCountResult[0]?.c ?? 0;
 
   const ratings = {
-    excellent: mySessions.filter((s) => s.rating === "excellent").length,
-    good:      mySessions.filter((s) => s.rating === "good").length,
-    weak:      mySessions.filter((s) => s.rating === "weak").length,
+    excellent: mySessions.filter((s) => s.overall_rating === "excellent").length,
+    good:      mySessions.filter((s) => s.overall_rating === "good").length,
+    weak:      mySessions.filter((s) => s.overall_rating === "weak").length,
   };
 
   return (

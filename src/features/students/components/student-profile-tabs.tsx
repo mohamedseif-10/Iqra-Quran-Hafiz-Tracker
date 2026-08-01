@@ -3,27 +3,29 @@
 import { useState } from "react";
 import { InitialMemorizationGrid, type JuzEntry } from "@/features/students/components/initial-memorization-grid";
 import { StudentSessionsTab } from "@/features/sessions/components/student-sessions-tab";
-import { StudentAttendanceTab } from "@/features/attendance/components/student-attendance-tab";
+import { ReviewCalendar } from "@/features/sessions/components/review-calendar";
 import { ProgressMap } from "@/features/students/components/progress-map";
 import { StudentIjazatTab } from "@/features/ijazat/components/student-ijazat-tab";
 
-type TabId = "progress" | "sessions" | "attendance" | "ijazat";
+type TabId = "progress" | "review" | "sessions" | "ijazat";
 
 interface StudentProfileTabsProps {
   studentId: string;
+  studentName?: string;
   initMemValue: JuzEntry[];
   isAdmin?: boolean;
 }
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "progress", label: "التقدم" },
+  { id: "review", label: "المراجعة المجدولة" },
   { id: "sessions", label: "الجلسات" },
-  { id: "attendance", label: "الحضور" },
   { id: "ijazat", label: "الإجازات" },
 ];
 
 export function StudentProfileTabs({
   studentId,
+  studentName,
   initMemValue,
   isAdmin = false,
 }: StudentProfileTabsProps) {
@@ -61,12 +63,12 @@ export function StudentProfileTabs({
           </div>
         )}
 
-        {activeTab === "sessions" && (
-          <StudentSessionsTab studentId={studentId} />
+        {activeTab === "review" && (
+          <ReviewCalendar studentId={studentId} />
         )}
 
-        {activeTab === "attendance" && (
-          <StudentAttendanceTab studentId={studentId} />
+        {activeTab === "sessions" && (
+          <StudentSessionsTab studentId={studentId} studentName={studentName} />
         )}
 
         {activeTab === "ijazat" && (

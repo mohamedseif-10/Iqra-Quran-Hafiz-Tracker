@@ -51,8 +51,7 @@ export default async function AdminDashboardPage() {
     db.select({
         id: sessionsTable.id,
         session_date: sessionsTable.session_date,
-        session_type: sessionsTable.session_type,
-        rating: sessionsTable.rating,
+        overall_rating: sessionsTable.overall_rating,
         student_id: studentsTable.id,
         student_name: studentsTable.name,
         teacher_name: usersTable.name,
@@ -102,9 +101,6 @@ export default async function AdminDashboardPage() {
   };
   const ratingLabel: Record<string, string> = {
     excellent: "ممتاز", good: "جيد", weak: "ضعيف",
-  };
-  const sessionTypeLabel: Record<string, string> = {
-    new_memorization: "تسميع جديد", review: "مراجعة",
   };
 
   return (
@@ -177,12 +173,12 @@ export default async function AdminDashboardPage() {
                         </Link>
                       ) : null}
                       <p className="text-xs text-muted-foreground truncate">
-                        {s.teacher_name} · {sessionTypeLabel[s.session_type] ?? s.session_type}
+                        {s.teacher_name}
                       </p>
                     </div>
                     <div className="shrink-0 flex items-center gap-1.5">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ratingColor[s.rating] ?? ""}`}>
-                        {ratingLabel[s.rating] ?? s.rating}
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ratingColor[s.overall_rating] ?? ""}`}>
+                        {ratingLabel[s.overall_rating] ?? s.overall_rating}
                       </span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(s.session_date).toLocaleDateString("ar-EG")}

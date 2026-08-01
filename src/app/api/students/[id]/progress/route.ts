@@ -4,6 +4,7 @@ import {
   juzBoundariesTable,
   juzPagesTable,
   sessionsTable,
+  sessionItemsTable,
   initialMemorizationTable,
   ijazatTable,
   surahsTable,
@@ -31,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 
   try {
     // Load all required data in parallel
-    const [boundaries, sessions, initialMem, ijazat, surahs, juzPages] = await Promise.all([
+    const [boundaries, sessionItems, initialMem, ijazat, surahs, juzPages] = await Promise.all([
       db
         .select({
           juz_number: juzBoundariesTable.juz_number,
@@ -42,17 +43,18 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
         .from(juzBoundariesTable),
       db
         .select({
-          id: sessionsTable.id,
+          id: sessionItemsTable.id,
           session_date: sessionsTable.session_date,
-          session_type: sessionsTable.session_type,
-          surah_id: sessionsTable.surah_id,
-          from_ayah: sessionsTable.from_ayah,
-          to_ayah: sessionsTable.to_ayah,
-          rating: sessionsTable.rating,
-          notes: sessionsTable.notes,
+          session_type: sessionItemsTable.session_type,
+          surah_id: sessionItemsTable.surah_id,
+          from_ayah: sessionItemsTable.from_ayah,
+          to_ayah: sessionItemsTable.to_ayah,
+          rating: sessionItemsTable.rating,
+          notes: sessionItemsTable.notes,
           teacher_name: usersTable.name,
         })
-        .from(sessionsTable)
+        .from(sessionItemsTable)
+        .innerJoin(sessionsTable, eq(sessionItemsTable.session_id, sessionsTable.id))
         .leftJoin(usersTable, eq(sessionsTable.teacher_id, usersTable.id))
         .where(eq(sessionsTable.student_id, studentId)),
       db
@@ -93,8 +95,8 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       surahMap.set(s.id, s.name_arabic);
     }
 
-    // Map sessions to the detailed row shape (extract teacher name from the join)
-    const detailedSessions: DetailedSessionRow[] = sessions.map((s) => ({
+    // Map session items to the detailed row shape
+    const detailedSessions: DetailedSessionRow[] = sessionItems.map((s) => ({
       id: s.id,
       session_date: s.session_date,
       session_type: s.session_type,

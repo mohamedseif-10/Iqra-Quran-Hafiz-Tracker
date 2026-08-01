@@ -79,10 +79,7 @@ export default async function TeacherDashboardPage() {
       .select({
         id: sessionsTable.id,
         session_date: sessionsTable.session_date,
-        session_type: sessionsTable.session_type,
-        rating: sessionsTable.rating,
-        from_ayah: sessionsTable.from_ayah,
-        to_ayah: sessionsTable.to_ayah,
+        overall_rating: sessionsTable.overall_rating,
         student_id: studentsTable.id,
         student_name: studentsTable.name,
         student_gender: studentsTable.gender,
@@ -142,9 +139,6 @@ export default async function TeacherDashboardPage() {
   };
   const ratingLabel: Record<string, string> = {
     excellent: "ممتاز", good: "جيد", weak: "ضعيف",
-  };
-  const sessionTypeLabel: Record<string, string> = {
-    new_memorization: "تسميع جديد", review: "مراجعة",
   };
 
   return (
@@ -238,12 +232,12 @@ export default async function TeacherDashboardPage() {
                         </Link>
                       ) : null}
                       <p className="text-xs text-muted-foreground">
-                        {sessionTypeLabel[s.session_type] ?? s.session_type}
+                        {s.student_id ? `${new Date(s.session_date).toLocaleDateString("ar-EG")}` : ""}
                       </p>
                     </div>
                     <div className="shrink-0 flex items-center gap-1.5">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ratingColor[s.rating] ?? ""}`}>
-                        {ratingLabel[s.rating] ?? s.rating}
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ratingColor[s.overall_rating] ?? ""}`}>
+                        {ratingLabel[s.overall_rating] ?? s.overall_rating}
                       </span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(s.session_date).toLocaleDateString("ar-EG")}

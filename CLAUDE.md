@@ -13,7 +13,7 @@ npm run dev        # start dev server on :3000
 npm run build      # production build (also the primary typecheck — CI-equivalent)
 npm run lint       # eslint (flat config, next core-web-vitals + typescript)
 npm start          # serve production build
-npm test           # vitest run (91 unit tests across progress, attendance, students, sessions)
+npm test           # vitest run (unit tests across progress, attendance, students, sessions, review)
 npm run test:watch # vitest in watch mode
 
 # Drizzle ORM (schema + migrations)
@@ -48,7 +48,8 @@ src/
 ├── domain/                   # PURE business rules — no I/O, no Drizzle, no Supabase
 │   ├── progress.ts           # computeJuzProgressPure, computeJuzProgressDetailedPure
 │   ├── attendance.ts         # computeAttendanceCalendar, computeDayAttendance
-│   ├── sessions.ts           # validateSessionPayload
+│   ├── sessions.ts           # validateSessionPayload (multi-item sessions)
+│   ├── review.ts             # computeReviewSchedule (spaced repetition: 1/7/30-day rules)
 │   ├── students.ts           # getLevelInfo, validateStudentPayload, validateInitialMemorization
 │   └── types.ts              # shared enum types (Rating, SessionType, Gender, etc.)
 ├── features/                 # vertical slices (components + server shells per feature)
@@ -125,8 +126,7 @@ Both `admin` and `teacher` roles share most capabilities. Teachers are gender-sc
 | Delete students | ✅ | ❌ | Soft delete (→ withdrawn) or permanent hard delete with cascade |
 | Record sessions | ✅ | ✅ | Teacher auto-attributed as `teacher_id`; admin can specify `teacher_id` |
 | Edit/delete sessions | ✅ all | ✅ own only | Teacher can only modify sessions they recorded |
-| Mark attendance | ✅ | ✅ | Manual attendance upsert on `(student_id, date)` |
-| Delete manual attendance | ✅ | ✅ | Auto-derived rows are regenerated, not manually deleted |
+| View attendance | ✅ | ✅ | Auto-derived from sessions (present days only); shown as stats cards in sessions tab |
 | Grant ijazat | ✅ | ✅ | `granted_by` = caller's `user.id` |
 | View ijazat | ✅ all | ✅ gender-scoped | Same gender scoping as students |
 | Revoke ijazat | ✅ | ❌ | DELETE `/api/ijazat/[id]` — admin only |
@@ -139,7 +139,7 @@ The shared edit form (`EditStudentForm`) renders the same UI for both roles — 
 
 `src/domain/progress.ts` is the heart of the app — a **pure function** (`computeJuzProgressPure`) with no I/O deps. The DB-fetching shell (`computeJuzProgress`) lives in `src/features/students/server/progress.ts`. Keep the pure/impure split — the pure function is what the unit tests exercise, and it takes an injectable `referenceDate` for deterministic date-based tests. The DB-fetching shell takes a `Db` client (Drizzle).
 
-For each of the 30 juz it computes ayah-level coverage by intersecting recorded `sessions` (ayah ranges) against `juz_boundaries`, unioning overlapping ranges per surah, then assigns a color:
+For each of the 30 juz it computes ayah-level coverage by intersecting recorded session items (ayah ranges from `session_items` joined to `sessions`) against `juz_boundaries`, unioning overlapping ranges per surah, then assigns a color:
 - **green** = has ijaza · **blue** = ≥70% covered, not weak-dominant, active within 30 days · **yellow** = covered but stale/weak · **gray** = untouched.
 - `initial_memorization` rows count as fully-covered juz; `with_ijaza` status and formal `ijazat` (type `juz` or `full_quran`) confer ijaza/green.
 - An init mem row with a non-null `pages` value represents **partial** memorization — coverage is computed from exact page-to-ayah ranges in the `juz_pages` table (not the old N/20 proportional estimate). Overall coverage = max(session coverage, init-mem page coverage). `pages` does **not** affect `memorized_juz_count` — each init mem row still counts as 1 juz.
@@ -148,7 +148,7 @@ For each of the 30 juz it computes ayah-level coverage by intersecting recorded 
 
 ### Routing structure
 
-Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `app/api/*`. Sidebar/nav is data-driven from `src/lib/nav.ts` (`getNavItems(role)`) — add a nav entry there, not in a layout. Admin and teacher have parallel feature sets (students, sessions, ijazat, attendance, reports) with different scoping. There is no longer an assignments page — teacher-student relationships are implicit via session records.
+Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `app/api/*`. Sidebar/nav is data-driven from `src/lib/nav.ts` (`getNavItems(role)`) — add a nav entry there, not in a layout. Admin and teacher have parallel feature sets (students, sessions, ijazat, reports) with different scoping. There is no longer a separate attendance page or assignments page — attendance is auto-derived from sessions (shown as stats cards in the sessions tab), and teacher-student relationships are implicit via session records.
 
 ### Database schema & migrations
 
@@ -157,7 +157,11 @@ Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `ap
 - **RLS policies**: `src/db/rls.sql` — applied manually once (Drizzle does not manage RLS). A copy is also in `supabase/legacy/rls.sql`.
 - **Seed data**: `supabase/legacy/seed.sql` — 114 surahs + 30 juz boundaries. Apply once on a fresh database.
 - **Legacy schema**: `supabase/legacy/schema.sql` — the original full schema, superseded by Drizzle. See `supabase/legacy/README.md`.
-- Key tables: `users`, `students`, `sessions`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`, `juz_pages`. The `teacher_student_assignments` table has been dropped (migration 0004) — assignments were removed in favor of gender-only scoping + session-level teacher attribution via `sessions.teacher_id`.
+- Key tables: `users`, `students`, `sessions`, `session_items`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`, `juz_pages`. The `teacher_student_assignments` table has been dropped (migration 0004) — assignments were removed in favor of gender-only scoping + session-level teacher attribution via `sessions.teacher_id`.
+- **`session_items`** (migration 0005): each session contains one or more items representing a Quran portion (surah + ayah range) that was recited. An item has `session_type` (`new_memorization` or `review`), `surah_id`, `from_ayah`, `to_ayah`, `rating`, optional `pages` and `notes`. The parent `sessions` table holds `overall_rating`, `notes`, `session_date`, `student_id`, `teacher_id`. This allows a single session to include both new memorization and review portions. Session items cascade-delete with their parent session (`ON DELETE CASCADE`).
+- **Session form** (`session-form.tsx`): in create mode, the form starts with zero items — the teacher clicks "إضافة عنصر" to add each item. New items are empty (surah picker has a placeholder option, ayah fields blank). All items can be removed (no minimum). The session date picker has `max={today}` to prevent future dates. `validateSessionPayload` enforces this server-side via an optional `todayDate` parameter (both POST and PUT routes pass `todayDateString()`). In edit mode, the form initializes from the existing session's items.
+- **Spaced repetition review** (`src/domain/review.ts`): pure function `computeReviewSchedule` computes which new-memorization items should be reviewed on a target date using three look-back rules: 1-day, 7-day, and 30-day. Only `new_memorization` items trigger scheduled reviews. The API endpoint `GET /api/students/[id]/review?date=YYYY-MM-DD` returns the schedule grouped by rule. The student profile has a "المراجعة المجدولة" tab showing the review calendar. The new-session form (`session-form.tsx`) also shows the recommended review inline via the `RecommendedReview` component (create mode only), so the teacher can see what the student should review while recording the session.
+- **Attendance** (auto-derived, present-only): attendance is auto-derived from sessions — a row is created for each day a student has a session. There is no absence tracking, no manual entry, and no excused/holiday statuses. `computeAttendanceCalendar` (pure, `src/domain/attendance.ts`) returns only present days; `recalculateStudentAttendance` (`src/features/attendance/server/recalc.ts`) persists them. The API endpoint `GET /api/students/[id]/attendance` returns `{ records, stats: { total, thisMonth } }` (no POST/DELETE). Attendance stats (total + this month) are shown as two cards at the top of the sessions tab in the student profile.
 - **`juz_pages`** maps each page within each juz to exact surah + ayah range(s) (665 rows; some pages span multiple surahs → one row per surah). Seeded from `juz_pages.json` via `scripts/seed-juz-pages.js`. Used by progress computation for partial init-mem coverage. Juz page counts vary (most 20, some 21, Juz 30 has 23) — hence `initial_memorization.pages` CHECK is 1-23.
 - **`initial_memorization.pages`** (smallint, nullable, CHECK 1-23): when set, the row represents partial memorization of that juz (N pages memorized, not the full juz). When null/absent, the row = full juz memorized.
 
@@ -184,4 +188,4 @@ DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supaba
 
 ## Testing
 
-Vitest is configured (`vitest.config.ts`). Tests are co-located with source files as `*.test.ts` in `src/domain/`. Run with `npm test` (91 tests across progress, attendance, students, sessions). The pure domain functions (`computeJuzProgressPure`, `computeJuzProgressDetailedPure`, `computeAttendanceCalendar`, `computeDayAttendance`, `validateSessionPayload`, `validateStudentPayload`, `validateInitialMemorization`, `getLevelInfo`, `countsFromInitialMemorization`) are unit-tested; the DB-fetching shells are not (they require a live DB).
+Vitest is configured (`vitest.config.ts`). Tests are co-located with source files as `*.test.ts` in `src/domain/`. Run with `npm test`. The pure domain functions (`computeJuzProgressPure`, `computeJuzProgressDetailedPure`, `computeAttendanceCalendar`, `computeDayAttendance`, `validateSessionPayload`, `validateStudentPayload`, `validateInitialMemorization`, `getLevelInfo`, `countsFromInitialMemorization`, `computeReviewSchedule`, `groupReviewsByRule`) are unit-tested; the DB-fetching shells are not (they require a live DB).
