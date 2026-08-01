@@ -104,16 +104,6 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
     const body = await request.json();
 
-    if (appUser.role === "teacher") {
-      const [data] = await db
-        .update(studentsTable)
-        .set({ notes: body.notes ?? null })
-        .where(eq(studentsTable.id, id))
-        .returning();
-
-      return Response.json(data);
-    }
-
     const allowedFields = ["name", "gender", "birth_date", "guardian_name", "guardian_phone", "enrollment_date", "notes", "status"];
     const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {

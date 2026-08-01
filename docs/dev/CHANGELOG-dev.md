@@ -6,6 +6,46 @@ inline). This is a record of *what changed and when*, not a status report.
 
 ---
 
+## 2026-08-01 — Expand teacher permissions: full student editing + hefz
+
+Branch: `fix-ijaza-page-UI`.
+
+### Rationale
+
+Teachers were restricted to editing only student notes; all other student data
+(personal info, status, initial memorization/hefz) was admin-only. The user
+requested that teachers be able to edit student personal info, initial
+memorization, and status — matching the admin edit form. This leaves only
+destructive operations (delete student, revoke ijaza, manage teachers) as
+admin-only.
+
+### What changed
+
+- **API route** (`src/app/api/students/[id]/route.ts`): removed the
+  teacher-specific branch in `PUT` that restricted teachers to `notes` +
+  `initial_memorization`. Both roles now share the same update path: all
+  allowed fields (name, gender, birth_date, guardian_name, guardian_phone,
+  enrollment_date, notes, status) + `initial_memorization`, with full
+  validation (`validateStudentPayload`, `validateInitialMemorization`),
+  `status_since` stamping on status change, and `recalculateStudentSummary` +
+  `recalculateStudentAttendance` calls.
+- **Edit form** (`src/app/(admin)/admin/students/[id]/edit/edit-student-form.tsx`):
+  removed the teacher-specific submit handler and the teacher-only UI block
+  (notes + init mem card). Teachers now see the exact same form as admins:
+  full personal info, status dropdown, and the initial memorization grid. The
+  `mode` prop remains in the interface for compatibility but no longer gates
+  any fields or behavior.
+- **CLAUDE.md**: added a "Role permissions matrix" section documenting all
+  capabilities and which are admin-only vs shared.
+
+### Admin-only capabilities (after this change)
+
+1. Delete students (soft → withdrawn, or permanent hard delete with cascade)
+2. Revoke ijazat (DELETE `/api/ijazat/[id]`)
+3. Manage teachers (create/list/update teacher accounts)
+
+---
+
 ## 2026-08-01 — Redesign admin ijazat page: vertical layout + responsive table
 
 Branch: `fix-ijaza-page-UI` (off `refactor/drop-teacher-assignments`).

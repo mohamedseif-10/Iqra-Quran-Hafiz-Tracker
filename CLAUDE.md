@@ -111,6 +111,30 @@ The established pattern (see `src/app/api/students/route.ts`) is:
 
 Teacher-student relationships are tracked **per-session** via `sessions.teacher_id` (NOT NULL, FK to `users`). The `teacher_student_assignments` table has been dropped (migration 0004). When a teacher records a session, their `user.id` is automatically stored as `teacher_id`. Admin pages that show "which teachers work with this student" derive the list from distinct `sessions.teacher_id` values.
 
+### Role permissions matrix
+
+Both `admin` and `teacher` roles share most capabilities. Teachers are gender-scoped (see Authorization pattern above) but otherwise have the same data access. The only admin-only operations are:
+
+| Capability | Admin | Teacher | Notes |
+|---|---|---|---|
+| View students | ✅ all | ✅ gender-scoped | Teacher sees own gender (or all if `can_view_all_genders`) |
+| Create students | ✅ | ✅ gender-scoped | Teacher can only create students matching their gender (unless `can_view_all_genders`) |
+| Edit student personal info | ✅ | ✅ | name, gender, birth date, guardian name/phone, enrollment date, notes |
+| Edit student status | ✅ | ✅ | active / paused / graduated / withdrawn — stamps `status_since` |
+| Edit initial memorization (hefz) | ✅ | ✅ | `initial_memorization` grid — triggers `recalculateStudentSummary` |
+| Delete students | ✅ | ❌ | Soft delete (→ withdrawn) or permanent hard delete with cascade |
+| Record sessions | ✅ | ✅ | Teacher auto-attributed as `teacher_id`; admin can specify `teacher_id` |
+| Edit/delete sessions | ✅ all | ✅ own only | Teacher can only modify sessions they recorded |
+| Mark attendance | ✅ | ✅ | Manual attendance upsert on `(student_id, date)` |
+| Delete manual attendance | ✅ | ✅ | Auto-derived rows are regenerated, not manually deleted |
+| Grant ijazat | ✅ | ✅ | `granted_by` = caller's `user.id` |
+| View ijazat | ✅ all | ✅ gender-scoped | Same gender scoping as students |
+| Revoke ijazat | ✅ | ❌ | DELETE `/api/ijazat/[id]` — admin only |
+| Manage teachers | ✅ | ❌ | Create/list/update teacher accounts (is_active, can_view_all_genders) |
+| View reports | ✅ | ✅ scoped | Admin sees all; teacher sees own students/sessions |
+
+The shared edit form (`EditStudentForm`) renders the same UI for both roles — the `mode` prop exists for interface compatibility but no longer gates any fields. The PUT `/api/students/[id]` route applies the same allowed-fields list, validation, and summary recalculation to both roles.
+
 ### Progress computation (the core domain logic)
 
 `src/domain/progress.ts` is the heart of the app — a **pure function** (`computeJuzProgressPure`) with no I/O deps. The DB-fetching shell (`computeJuzProgress`) lives in `src/features/students/server/progress.ts`. Keep the pure/impure split — the pure function is what the unit tests exercise, and it takes an injectable `referenceDate` for deterministic date-based tests. The DB-fetching shell takes a `Db` client (Drizzle).

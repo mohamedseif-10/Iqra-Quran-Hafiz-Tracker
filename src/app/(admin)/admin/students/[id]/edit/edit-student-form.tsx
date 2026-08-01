@@ -29,7 +29,7 @@ interface EditStudentFormProps {
   mode: "admin" | "teacher";
 }
 
-export function EditStudentForm({ student, initialMem, redirectBase, mode }: EditStudentFormProps) {
+export function EditStudentForm({ student, initialMem, redirectBase }: EditStudentFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -53,19 +53,6 @@ export function EditStudentForm({ student, initialMem, redirectBase, mode }: Edi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (mode === "teacher") {
-      startTransition(async () => {
-        try {
-          await apiPut(`/api/students/${student.id}`, { notes: form.notes || null });
-          router.push(redirectBase);
-          router.refresh();
-        } catch (err) {
-          setError(err instanceof ApiError ? err.message : "حدث خطأ");
-        }
-      });
-      return;
-    }
 
     if (!form.name || !form.gender || !form.guardian_name || !form.guardian_phone) {
       setError("يرجى ملء جميع الحقول المطلوبة");
@@ -107,44 +94,6 @@ export function EditStudentForm({ student, initialMem, redirectBase, mode }: Edi
       }
     });
   };
-
-  if (mode === "teacher") {
-    return (
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="card space-y-3">
-          <h3 className="font-semibold text-base border-b border-border pb-2">ملاحظات الطالب</h3>
-          <p className="text-sm text-muted-foreground">
-            يمكنك تعديل الملاحظات فقط. لبقية البيانات تواصل مع المشرف.
-          </p>
-          <div>
-            <label className="form-label">الطالب</label>
-            <p className="text-sm font-medium">{student.name}</p>
-          </div>
-          <div>
-            <label className="form-label">ملاحظات</label>
-            <textarea
-              className="input-field min-h-[120px] resize-none"
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              placeholder="أي ملاحظات عن الطالب…"
-            />
-          </div>
-        </div>
-
-        {error && <p className="field-error text-base">{error}</p>}
-
-        <div className="flex justify-end gap-3">
-          <Link href={redirectBase} className="btn-secondary">
-            إلغاء
-          </Link>
-          <button type="submit" className="btn-primary" disabled={isPending}>
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            حفظ الملاحظات
-          </button>
-        </div>
-      </form>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">

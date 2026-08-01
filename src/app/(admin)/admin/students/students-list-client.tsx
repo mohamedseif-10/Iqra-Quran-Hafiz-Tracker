@@ -138,7 +138,7 @@ export function StudentsListClient({ teachers, role, basePath }: StudentsListCli
         </div>
         <div className="flex gap-2">
           <select
-            className="input-field max-w-[140px]"
+            className="input-field flex-1 sm:flex-none sm:max-w-[140px]"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -148,7 +148,7 @@ export function StudentsListClient({ teachers, role, basePath }: StudentsListCli
           </select>
           <button
             type="button"
-            className="btn-secondary gap-1.5"
+            className="btn-secondary gap-1.5 shrink-0"
             onClick={() => setShowFilters((v) => !v)}
           >
             <SlidersHorizontal className="size-4" />
