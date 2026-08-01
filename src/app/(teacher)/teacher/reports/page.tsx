@@ -186,14 +186,15 @@ export default async function TeacherReportsPage() {
           <TrendingUp className="size-4 text-primary" />
           <h3 className="font-semibold">طلابي ({myStudents.length})</h3>
         </div>
-        <div className="overflow-x-auto">
+        {/* Desktop/tablet: table view */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary text-right">
                 <th className="px-4 py-2 font-medium">الطالب</th>
                 <th className="px-4 py-2 font-medium">الحالة</th>
                 <th className="px-4 py-2 font-medium">الأجزاء</th>
-                <th className="hidden px-4 py-2 font-medium sm:table-cell">آخر جلسة</th>
+                <th className="px-4 py-2 font-medium">آخر جلسة</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -220,7 +221,7 @@ export default async function TeacherReportsPage() {
                       <span className="text-[#16a34a] text-xs mr-1">({s.ijaza_juz_count}✓)</span>
                     )}
                   </td>
-                  <td className="hidden px-4 py-2 text-muted-foreground sm:table-cell">
+                  <td className="px-4 py-2 text-muted-foreground">
                     {s.last_session_date
                       ? new Date(s.last_session_date).toLocaleDateString("ar-EG")
                       : "—"}
@@ -229,6 +230,37 @@ export default async function TeacherReportsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        {/* Mobile: card view */}
+        <div className="sm:hidden space-y-2.5">
+          {myStudents.map((s) => (
+            <Link
+              key={s.id}
+              href={`/teacher/students/${s.id}`}
+              className="block rounded-lg border border-border p-3 space-y-2 hover:bg-secondary/40 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-primary truncate">{s.name}</span>
+                <StudentStatusBadge value={s.status as StudentStatus} />
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <GenderBadge value={s.gender as "male" | "female"} />
+                  <span>
+                    <span className="font-bold text-foreground">{s.memorized_juz_count}</span>/30
+                    {s.ijaza_juz_count > 0 && (
+                      <span className="text-[#16a34a] mr-1"> ({s.ijaza_juz_count}✓)</span>
+                    )}
+                  </span>
+                </div>
+                <span>
+                  {s.last_session_date
+                    ? new Date(s.last_session_date).toLocaleDateString("ar-EG")
+                    : "—"}
+                </span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

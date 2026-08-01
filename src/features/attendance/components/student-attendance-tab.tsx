@@ -224,51 +224,87 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
       ) : records.length === 0 ? (
         <p className="text-center py-10 text-sm text-muted-foreground">لا يوجد سجل حضور</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary text-right">
-                <th className="px-3 py-2 font-medium">التاريخ</th>
-                <th className="px-3 py-2 font-medium">الحالة</th>
-                <th className="hidden px-3 py-2 font-medium md:table-cell">المحفظ</th>
-                <th className="hidden px-3 py-2 font-medium md:table-cell">ملاحظات</th>
-                <th className="px-3 py-2 font-medium text-center">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {records.map((r) => (
-                <tr key={r.id} className="hover:bg-secondary/50">
-                  <td className="px-3 py-2">
-                    {new Date(r.attendance_date).toLocaleDateString("ar-EG")}
-                  </td>
-                  <td className="px-3 py-2">
-                    <AttendanceBadge value={r.status} />
-                  </td>
-                  <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
-                    {r.teacher_name}
-                  </td>
-                  <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
-                    {r.notes ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {r.recorded_manually ? (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEntry(r.attendance_date)}
-                        className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        title="حذف السجل اليدوي"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">تلقائي</span>
-                    )}
-                  </td>
+        <>
+          {/* Desktop/tablet: table view */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-secondary text-right">
+                  <th className="px-3 py-2 font-medium">التاريخ</th>
+                  <th className="px-3 py-2 font-medium">الحالة</th>
+                  <th className="hidden px-3 py-2 font-medium md:table-cell">المحفظ</th>
+                  <th className="hidden px-3 py-2 font-medium md:table-cell">ملاحظات</th>
+                  <th className="px-3 py-2 font-medium text-center">إجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {records.map((r) => (
+                  <tr key={r.id} className="hover:bg-secondary/50">
+                    <td className="px-3 py-2">
+                      {new Date(r.attendance_date).toLocaleDateString("ar-EG")}
+                    </td>
+                    <td className="px-3 py-2">
+                      <AttendanceBadge value={r.status} />
+                    </td>
+                    <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
+                      {r.teacher_name}
+                    </td>
+                    <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
+                      {r.notes ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {r.recorded_manually ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEntry(r.attendance_date)}
+                          className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="حذف السجل اليدوي"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">تلقائي</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: card view */}
+          <div className="sm:hidden space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">
+                    {new Date(r.attendance_date).toLocaleDateString("ar-EG")}
+                  </span>
+                  <AttendanceBadge value={r.status} />
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>{r.teacher_name}</span>
+                  {r.recorded_manually ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteEntry(r.attendance_date)}
+                      className="inline-flex items-center gap-1 text-destructive hover:text-red-700 transition-colors"
+                      title="حذف السجل اليدوي"
+                    >
+                      <Trash2 className="size-3.5" />
+                      حذف
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">تلقائي</span>
+                  )}
+                </div>
+                {r.notes && (
+                  <p className="text-xs text-muted-foreground bg-secondary/40 rounded p-2">{r.notes}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

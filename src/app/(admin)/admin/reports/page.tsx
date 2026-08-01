@@ -235,45 +235,77 @@ export default async function AdminReportsPage() {
             لا توجد جلسات مسجلة هذا الشهر
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary text-right">
-                <th className="px-4 py-2 font-medium">المحفظ</th>
-                <th className="px-4 py-2 font-medium">الجلسات</th>
-                <th className="px-4 py-2 font-medium">النسبة</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {teacherActivity.map((t) => (
-                <tr key={t.id} className="hover:bg-secondary/50 transition-colors">
-                  <td className="px-4 py-2">
-                    <Link
-                      href={`/admin/teachers/${t.id}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {t.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 font-bold">{t.count}</td>
-                  <td className="px-4 py-2">
+          <>
+            {/* Desktop/tablet: table view */}
+            <table className="hidden sm:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-secondary text-right">
+                  <th className="px-4 py-2 font-medium">المحفظ</th>
+                  <th className="px-4 py-2 font-medium">الجلسات</th>
+                  <th className="px-4 py-2 font-medium">النسبة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {teacherActivity.map((t) => (
+                  <tr key={t.id} className="hover:bg-secondary/50 transition-colors">
+                    <td className="px-4 py-2">
+                      <Link
+                        href={`/admin/teachers/${t.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {t.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2 font-bold">{t.count}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 flex-1 rounded-full bg-secondary overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{
+                              width: `${sessionsMonth > 0 ? Math.round((t.count / sessionsMonth) * 100) : 0}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="w-8 text-right text-xs text-muted-foreground">
+                          {sessionsMonth > 0 ? Math.round((t.count / sessionsMonth) * 100) : 0}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile: card view */}
+            <div className="sm:hidden space-y-2.5">
+              {teacherActivity.map((t) => {
+                const pct = sessionsMonth > 0 ? Math.round((t.count / sessionsMonth) * 100) : 0;
+                return (
+                  <div key={t.id} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={`/admin/teachers/${t.id}`}
+                        className="font-medium text-primary hover:underline truncate text-sm"
+                      >
+                        {t.name}
+                      </Link>
+                      <span className="font-bold text-sm shrink-0">{t.count} جلسة</span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 flex-1 rounded-full bg-secondary overflow-hidden">
                         <div
                           className="h-full rounded-full bg-primary"
-                          style={{
-                            width: `${sessionsMonth > 0 ? Math.round((t.count / sessionsMonth) * 100) : 0}%`,
-                          }}
+                          style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="w-8 text-right text-xs text-muted-foreground">
-                        {sessionsMonth > 0 ? Math.round((t.count / sessionsMonth) * 100) : 0}%
-                      </span>
+                      <span className="w-10 text-left text-xs text-muted-foreground">{pct}%</span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>

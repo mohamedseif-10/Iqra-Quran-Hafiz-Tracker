@@ -133,32 +133,54 @@ export default async function TeacherProfilePage({ params }: PageProps) {
             لا يوجد طلاب سجل هذا المحفظ جلسات لهم
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary text-right">
-                <th className="px-4 py-2.5 font-medium">الطالب</th>
-                <th className="px-4 py-2.5 font-medium">الجنس</th>
-                <th className="px-4 py-2.5 font-medium">المستوى</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {students.map((s) => s && (
-                <tr key={s.id} className="hover:bg-secondary/50">
-                  <td className="px-4 py-2.5">
-                    <Link href={`/admin/students/${s.id}`} className="font-medium text-primary hover:underline">
-                      {s.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <GenderBadge value={s.gender as "male" | "female"} />
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <LevelBadge memorizedJuzCount={s.memorized_juz_count} />
-                  </td>
+          <>
+            {/* Desktop/tablet: table view */}
+            <table className="hidden sm:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-secondary text-right">
+                  <th className="px-4 py-2.5 font-medium">الطالب</th>
+                  <th className="px-4 py-2.5 font-medium">الجنس</th>
+                  <th className="px-4 py-2.5 font-medium">المستوى</th>
                 </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {students.map((s) => s && (
+                  <tr key={s.id} className="hover:bg-secondary/50">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/admin/students/${s.id}`} className="font-medium text-primary hover:underline">
+                        {s.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <GenderBadge value={s.gender as "male" | "female"} />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <LevelBadge memorizedJuzCount={s.memorized_juz_count} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile: card view */}
+            <div className="sm:hidden divide-y divide-border">
+              {students.map((s) => s && (
+                <Link
+                  key={s.id}
+                  href={`/admin/students/${s.id}`}
+                  className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-secondary/50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <span className="font-medium text-primary block truncate">{s.name}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <GenderBadge value={s.gender as "male" | "female"} />
+                      <LevelBadge memorizedJuzCount={s.memorized_juz_count} />
+                    </div>
+                  </div>
+                </Link>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

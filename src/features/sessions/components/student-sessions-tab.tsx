@@ -96,48 +96,79 @@ export function StudentSessionsTab({ studentId }: StudentSessionsTabProps) {
       ) : sessions.length === 0 ? (
         <p className="text-center py-10 text-sm text-muted-foreground">لا توجد جلسات مسجّلة</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary text-right">
-                <th className="px-3 py-2 font-medium">التاريخ</th>
-                <th className="px-3 py-2 font-medium">النوع</th>
-                <th className="px-3 py-2 font-medium">السورة / الآيات</th>
-                <th className="px-3 py-2 font-medium">الصفحات</th>
-                <th className="px-3 py-2 font-medium">التقييم</th>
-                <th className="hidden px-3 py-2 font-medium md:table-cell">المحفظ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {sessions.map((s) => (
-                <tr key={s.id} className="hover:bg-secondary/50">
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    {new Date(s.session_date).toLocaleDateString("ar-EG")}
-                  </td>
-                  <td className="px-3 py-2">
-                    <SessionTypeBadge value={s.session_type} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{s.surah_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatAyahPreview(s.surah_name, s.from_ayah, s.to_ayah).replace(`سورة ${s.surah_name} `, "")}
-                    </p>
-                    {s.notes && <p className="text-xs text-muted-foreground mt-0.5">{s.notes}</p>}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {s.pages != null ? toArabicNumerals(s.pages) : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <RatingBadge value={s.rating} />
-                  </td>
-                  <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
-                    {s.teacher_name}
-                  </td>
+        <>
+          {/* Desktop/tablet: table view */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-secondary text-right">
+                  <th className="px-3 py-2 font-medium">التاريخ</th>
+                  <th className="px-3 py-2 font-medium">النوع</th>
+                  <th className="px-3 py-2 font-medium">السورة / الآيات</th>
+                  <th className="px-3 py-2 font-medium">الصفحات</th>
+                  <th className="px-3 py-2 font-medium">التقييم</th>
+                  <th className="hidden px-3 py-2 font-medium md:table-cell">المحفظ</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {sessions.map((s) => (
+                  <tr key={s.id} className="hover:bg-secondary/50">
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {new Date(s.session_date).toLocaleDateString("ar-EG")}
+                    </td>
+                    <td className="px-3 py-2">
+                      <SessionTypeBadge value={s.session_type} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <p className="font-medium">{s.surah_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatAyahPreview(s.surah_name, s.from_ayah, s.to_ayah).replace(`سورة ${s.surah_name} `, "")}
+                      </p>
+                      {s.notes && <p className="text-xs text-muted-foreground mt-0.5">{s.notes}</p>}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {s.pages != null ? toArabicNumerals(s.pages) : "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <RatingBadge value={s.rating} />
+                    </td>
+                    <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
+                      {s.teacher_name}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: card view */}
+          <div className="sm:hidden space-y-2.5">
+            {sessions.map((s) => (
+              <div key={s.id} className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(s.session_date).toLocaleDateString("ar-EG")}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <SessionTypeBadge value={s.session_type} />
+                    <RatingBadge value={s.rating} />
+                  </div>
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{s.surah_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatAyahPreview(s.surah_name, s.from_ayah, s.to_ayah).replace(`سورة ${s.surah_name} `, "")}
+                    {s.pages != null && ` · ${toArabicNumerals(s.pages)} صفحة`}
+                  </p>
+                </div>
+                {s.notes && (
+                  <p className="text-xs text-muted-foreground bg-secondary/40 rounded p-2">{s.notes}</p>
+                )}
+                <p className="text-xs text-muted-foreground">{s.teacher_name}</p>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

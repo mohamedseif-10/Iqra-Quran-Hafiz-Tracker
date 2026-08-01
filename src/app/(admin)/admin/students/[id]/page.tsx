@@ -83,14 +83,14 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/admin/students" className="btn-secondary px-2 py-1.5 text-xs">
+          <Link href="/admin/students" className="btn-secondary px-2 py-1.5 text-xs shrink-0">
             <ArrowRight className="size-4" />
           </Link>
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              {student.name}
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <span className="truncate">{student.name}</span>
               <GenderBadge value={student.gender as "male" | "female"} />
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -99,14 +99,14 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/admin/ijazat?grant_for=${id}`} className="btn-primary gap-1.5 text-sm">
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href={`/admin/ijazat?grant_for=${id}`} className="btn-primary gap-1.5 text-sm px-3 py-2">
             <Award className="size-4" />
-            منح إجازة
+            <span>منح إجازة</span>
           </Link>
-          <Link href={`/admin/students/${id}/edit`} className="btn-secondary gap-1.5">
+          <Link href={`/admin/students/${id}/edit`} className="btn-secondary gap-1.5 px-3 py-2">
             <Pencil className="size-4" />
-            تعديل
+            <span>تعديل</span>
           </Link>
         </div>
       </div>

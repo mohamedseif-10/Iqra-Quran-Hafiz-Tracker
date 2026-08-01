@@ -195,9 +195,9 @@ export default async function TeacherDashboardPage() {
           </div>
           <ul className="space-y-2">
             {atRisk.map((s) => (
-              <li key={s.id} className="flex items-center justify-between text-sm">
-                <Link href={`/teacher/students/${s.id}`} className="font-medium text-primary hover:underline flex items-center gap-1.5">
-                  {s.name}
+              <li key={s.id} className="flex items-center justify-between text-sm gap-2">
+                <Link href={`/teacher/students/${s.id}`} className="font-medium text-primary hover:underline flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{s.name}</span>
                   <GenderBadge value={s.gender as "male" | "female"} />
                 </Link>
                 <span className="text-xs text-muted-foreground">
