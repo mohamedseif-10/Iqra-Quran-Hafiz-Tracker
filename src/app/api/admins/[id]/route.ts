@@ -4,7 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { createSupabaseAdminClient } from "@/infrastructure/auth/admin";
 import { isSuperAdmin, usernameToEmail } from "@/features/auth/shared";
 import { sanitizeError } from "@/lib/api-error";
-import { usersTable, ijazatTable, sessionsTable, attendanceTable } from "@/db/schema";
+import { usersTable, ijazatTable, sessionsTable } from "@/db/schema";
 import { getApiContext } from "@/features/auth/api-context";
 import { logAction } from "@/features/audit/audit-log";
 
@@ -169,7 +169,6 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   try {
     // Clean up child rows referencing this user before deletion
     await db.delete(ijazatTable).where(eq(ijazatTable.granted_by, id));
-    await db.delete(attendanceTable).where(eq(attendanceTable.teacher_id, id));
     await db.delete(sessionsTable).where(eq(sessionsTable.teacher_id, id));
     await db.execute(sql`DELETE FROM teacher_student_assignments WHERE teacher_id = ${id} OR created_by = ${id}`);
     await db.delete(usersTable).where(eq(usersTable.id, id));

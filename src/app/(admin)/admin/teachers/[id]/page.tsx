@@ -86,7 +86,7 @@ export default async function TeacherProfilePage({ params }: PageProps) {
         teacherUsername={teacher.username}
         teacherPhone={teacher.phone}
         teacherGender={teacher.gender}
-        teacherCreatedAt={teacher.created_at}
+        teacherCreatedAt={teacher.created_at ? teacher.created_at.toISOString() : null}
         isActive={teacher.is_active ?? true}
         canViewAllGenders={teacher.can_view_all_genders ?? false}
       />
