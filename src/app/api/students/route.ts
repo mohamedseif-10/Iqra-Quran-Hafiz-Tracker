@@ -192,34 +192,37 @@ export async function POST(request: NextRequest) {
   const { memorized_juz_count, ijaza_juz_count } = countsFromInitialMemorization(initRows);
 
   try {
-    const [student] = await db
-      .insert(studentsTable)
-      .values({
-        name,
-        gender,
-        birth_date: birth_date ?? null,
-        guardian_name,
-        guardian_phone,
-        enrollment_date: enrollment_date ?? todayDateString(),
-        notes: notes ?? null,
-        memorized_juz_count,
-        ijaza_juz_count,
-      })
-      .returning();
+    const [student] = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(studentsTable)
+        .values({
+          name,
+          gender,
+          birth_date: birth_date ?? null,
+          guardian_name,
+          guardian_phone,
+          enrollment_date: enrollment_date ?? todayDateString(),
+          notes: notes ?? null,
+          memorized_juz_count,
+          ijaza_juz_count,
+        })
+        .returning();
 
-    if (!student) return Response.json({ error: sanitizeError(new Error("student insert failed"), "student insert") }, { status: 500 });
+      if (!inserted) throw new Error("student insert failed");
 
-    // Persist initial_memorization rows
-    if (initRows.length > 0) {
-      const rowsToInsert = initRows.map((r) => ({
-        student_id: student.id,
-        juz_number: r.juz_number,
-        status: r.status,
-        sheikh_name: r.sheikh_name ?? null,
-        pages: r.pages ?? null,
-      }));
-      await db.insert(initialMemorizationTable).values(rowsToInsert);
-    }
+      if (initRows.length > 0) {
+        const rowsToInsert = initRows.map((r) => ({
+          student_id: inserted.id,
+          juz_number: r.juz_number,
+          status: r.status,
+          sheikh_name: r.sheikh_name ?? null,
+          pages: r.pages ?? null,
+        }));
+        await tx.insert(initialMemorizationTable).values(rowsToInsert);
+      }
+
+      return [inserted];
+    });
 
     await recalculateStudentSummary(db, student.id);
 
