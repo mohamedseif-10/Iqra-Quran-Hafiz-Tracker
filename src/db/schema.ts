@@ -202,7 +202,6 @@ export const sessionItemsTable = pgTable(
     check("session_items_pages_check", sql`${t.pages} IS NULL OR ${t.pages} >= 0`),
     check("session_items_valid_ayah_range", sql`${t.from_ayah} <= ${t.to_ayah}`),
     index("idx_session_items_session").on(t.session_id),
-    index("idx_session_items_student_date").on(t.session_id),
   ],
 );
 
@@ -213,21 +212,14 @@ export const attendanceTable = pgTable(
     student_id: uuid("student_id")
       .notNull()
       .references(() => studentsTable.id),
-    teacher_id: uuid("teacher_id").references(() => usersTable.id),
     attendance_date: date("attendance_date").notNull(),
     status: text("status").notNull(),
-    // True for manually-entered records (excused absences, holidays, manual
-    // present/absent). False for auto-derived rows from sessions. Manual
-    // records are preserved by recalculateStudentAttendance and never
-    // overwritten by the auto-derivation.
-    recorded_manually: boolean("recorded_manually").notNull().default(false),
-    notes: text("notes"),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [
     check(
       "attendance_status_check",
-      sql`${t.status} IN ('present', 'absent', 'excused', 'holiday')`,
+      sql`${t.status} IN ('present')`,
     ),
     uniqueIndex("attendance_student_id_attendance_date_key").on(
       t.student_id,

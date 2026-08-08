@@ -78,11 +78,8 @@ export async function recalculateStudentAttendance(
         .insert(attendanceTable)
         .values({
           student_id: studentId,
-          teacher_id: null,
           attendance_date: opts.affectedDate,
           status: "present",
-          notes: null,
-          recorded_manually: false,
         })
         .onConflictDoNothing({
           target: [attendanceTable.student_id, attendanceTable.attendance_date],
@@ -99,11 +96,8 @@ export async function recalculateStudentAttendance(
   const calendar = computeAttendanceCalendar(sessionDates, ctx, today);
   const toInsert = calendar.map((day) => ({
     student_id: studentId,
-    teacher_id: null,
     attendance_date: day.date,
     status: "present" as const,
-    notes: null,
-    recorded_manually: false,
   }));
 
   if (toInsert.length > 0) {

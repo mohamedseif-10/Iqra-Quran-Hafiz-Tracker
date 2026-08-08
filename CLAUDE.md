@@ -76,7 +76,6 @@ src/
 1. **Drizzle ORM** (`src/db/`) — the primary data access layer for all server-side queries (API routes, RSC pages, server actions, feature server shells).
    - `src/db/schema.ts` — single source of truth for the DB schema. JS property names are **snake_case** to match DB column names and the existing codebase convention.
    - `src/db/client.ts` — `getDb()` returns a Drizzle client (`Db | null`) using the `pg` driver + `DATABASE_URL` env var. Server-only (uses `pg` Node driver, cannot run at the edge).
-   - `src/db/rls.sql` — RLS policies (applied manually once; Drizzle does not manage RLS).
    - Migrations in `drizzle/migrations/` generated via `npm run db:generate`.
    - **Bypasses RLS** (uses a direct Postgres connection, not Supabase JWTs). App-level authorization is enforced in code (see below).
 
@@ -154,7 +153,7 @@ Route groups: `(auth)/login`, `(admin)/admin/*`, `(teacher)/teacher/*`, plus `ap
 
 - **Schema source of truth**: `src/db/schema.ts` (Drizzle). JS property names are snake_case to match DB columns.
 - **Migrations**: `drizzle/migrations/` — generated via `npm run db:generate`. Apply to the live DB via Supabase SQL editor or `npm run db:push`.
-- **RLS policies**: `src/db/rls.sql` — applied manually once (Drizzle does not manage RLS). A copy is also in `supabase/legacy/rls.sql`.
+- **RLS policies**: `supabase/legacy/rls.sql` — applied manually once (Drizzle does not manage RLS). Stale (references dropped `teacher_student_assignments` table); needs updating if RLS is required.
 - **Seed data**: `supabase/legacy/seed.sql` — 114 surahs + 30 juz boundaries. Apply once on a fresh database.
 - **Legacy schema**: `supabase/legacy/schema.sql` — the original full schema, superseded by Drizzle. See `supabase/legacy/README.md`.
 - Key tables: `users`, `students`, `sessions`, `session_items`, `attendance`, `ijazat`, `initial_memorization`, `surahs`, `juz_boundaries`, `juz_pages`. The `teacher_student_assignments` table has been dropped (migration 0004) — assignments were removed in favor of gender-only scoping + session-level teacher attribution via `sessions.teacher_id`.

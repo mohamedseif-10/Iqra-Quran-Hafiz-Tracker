@@ -1,5 +1,4 @@
 import {
-  LayoutDashboard,
   Users,
   GraduationCap,
   BookOpen,
@@ -20,9 +19,9 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   {
-    label: "لوحة التحكم",
-    href: "/admin",
-    icon: LayoutDashboard,
+    label: "التقارير",
+    href: "/admin/reports",
+    icon: BarChart3,
   },
   {
     label: "الطلاب",
@@ -40,11 +39,6 @@ export const navItems: NavItem[] = [
     href: "/admin/ijazat",
     icon: BookOpen,
   },
-  {
-    label: "التقارير",
-    href: "/admin/reports",
-    icon: BarChart3,
-  },
 ];
 
 export function navItemsForRole(role: Role): NavItem[] {
@@ -53,7 +47,11 @@ export function navItemsForRole(role: Role): NavItem[] {
 
 export function teacherNavItems(): NavItem[] {
   return [
-    { label: "لوحة التحكم", href: "/teacher", icon: LayoutDashboard },
+    {
+      label: "التقارير",
+      href: "/teacher/reports",
+      icon: BarChart3,
+    },
     { label: "الطلاب", href: "/teacher/students", icon: Users },
     {
       label: "تسجيل جلسة",
@@ -64,11 +62,6 @@ export function teacherNavItems(): NavItem[] {
       label: "منح إجازة",
       href: "/teacher/ijazat/new",
       icon: Award,
-    },
-    {
-      label: "التقارير",
-      href: "/teacher/reports",
-      icon: BarChart3,
     },
   ];
 }

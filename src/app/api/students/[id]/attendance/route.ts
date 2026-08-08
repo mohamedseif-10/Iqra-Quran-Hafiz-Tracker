@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { and, eq, gte, lte, desc } from "drizzle-orm";
-import { attendanceTable, usersTable } from "@/db/schema";
+import { attendanceTable } from "@/db/schema";
 import { canAccessStudent } from "@/features/auth/student-access";
 import { sanitizeError } from "@/lib/api-error";
 import { getApiContext } from "@/features/auth/api-context";
@@ -35,13 +35,8 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
         id: attendanceTable.id,
         attendance_date: attendanceTable.attendance_date,
         status: attendanceTable.status,
-        notes: attendanceTable.notes,
-        recorded_manually: attendanceTable.recorded_manually,
-        teacher_id: attendanceTable.teacher_id,
-        teacher_name: usersTable.name,
       })
       .from(attendanceTable)
-      .leftJoin(usersTable, eq(attendanceTable.teacher_id, usersTable.id))
       .where(and(...conditions))
       .orderBy(desc(attendanceTable.attendance_date));
 
@@ -49,10 +44,6 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       id: r.id,
       attendance_date: r.attendance_date,
       status: r.status,
-      notes: r.notes,
-      recorded_manually: r.recorded_manually,
-      teacher_id: r.teacher_id,
-      teacher_name: r.teacher_name ?? "",
     }));
 
     // Stats: total attendance + attendance in current month
