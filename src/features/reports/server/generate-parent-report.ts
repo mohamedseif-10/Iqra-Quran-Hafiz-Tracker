@@ -15,10 +15,7 @@ import {
 } from "@/db/schema";
 import {
   getPeriodRange,
-  filterItemsByPeriod,
   type ReportPeriod,
-  type PeriodRange,
-  type StudentSessionItemRow,
 } from "@/domain/report-stats";
 import { getLevelInfo } from "@/domain/students";
 

@@ -40,7 +40,7 @@ export default function NewAdminForm() {
 
     startTransition(async () => {
       try {
-        const data = await apiPost<{ id: string }>("/api/admins", {
+        await apiPost<{ id: string }>("/api/admins", {
           name: form.name,
           username: form.username,
           password: form.password,

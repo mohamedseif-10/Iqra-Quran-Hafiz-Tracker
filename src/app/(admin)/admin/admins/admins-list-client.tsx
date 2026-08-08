@@ -37,6 +37,8 @@ export default function AdminsListClient() {
   }
 
   useEffect(() => {
+    // Data-fetching effect: fetchAdmins calls setState internally.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAdmins();
   }, []);
 

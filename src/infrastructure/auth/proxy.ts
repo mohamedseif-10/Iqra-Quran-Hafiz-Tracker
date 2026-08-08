@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-import { isAdmin, isSuperAdmin, roleHomePath, type AppRole } from "@/features/auth/shared";
+import { isAdmin, roleHomePath, type AppRole } from "@/features/auth/shared";
 import { getSupabasePublicEnv } from "./config";
 
 interface AppUserRow {
