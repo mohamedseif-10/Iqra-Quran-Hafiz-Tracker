@@ -73,7 +73,9 @@ export async function requireRole(requiredRole: AppRole): Promise<AppUser> {
     redirect("/login");
   }
 
-  if (user.role !== requiredRole) {
+  if (requiredRole === "admin" && !isAdmin(user.role)) {
+    redirect(roleHomePath(user.role));
+  } else if (requiredRole === "teacher" && user.role !== "teacher") {
     redirect(roleHomePath(user.role));
   }
 

@@ -80,48 +80,16 @@ export default async function TeacherProfilePage({ params }: PageProps) {
         <h2 className="text-xl font-bold">{teacher.name}</h2>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Info card */}
-        <div className="card space-y-4">
-          <h3 className="font-semibold">بيانات المحفظ</h3>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">الاسم</dt>
-              <dd className="font-medium">{teacher.name}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">اسم المستخدم</dt>
-              <dd dir="ltr">{teacher.username}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">الجنس</dt>
-              <dd>
-                {teacher.gender ? (
-                  <GenderBadge value={teacher.gender as "male" | "female"} />
-                ) : "—"}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">الهاتف</dt>
-              <dd dir="ltr">{teacher.phone ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">تاريخ الإنشاء</dt>
-              <dd>{teacher.created_at ? new Date(teacher.created_at).toLocaleDateString("ar-EG") : "—"}</dd>
-            </div>
-          </dl>
-        </div>
-
-        {/* Controls */}
-        <div className="card space-y-4">
-          <h3 className="font-semibold">الإعدادات</h3>
-          <TeacherProfileActions
-            teacherId={teacher.id}
-            isActive={teacher.is_active ?? true}
-            canViewAllGenders={teacher.can_view_all_genders ?? false}
-          />
-        </div>
-      </div>
+      <TeacherProfileActions
+        teacherId={teacher.id}
+        teacherName={teacher.name}
+        teacherUsername={teacher.username}
+        teacherPhone={teacher.phone}
+        teacherGender={teacher.gender}
+        teacherCreatedAt={teacher.created_at ? teacher.created_at.toISOString() : null}
+        isActive={teacher.is_active ?? true}
+        canViewAllGenders={teacher.can_view_all_genders ?? false}
+      />
 
       {/* Students with recorded sessions */}
       <div className="card p-0">

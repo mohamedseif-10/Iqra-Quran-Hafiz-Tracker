@@ -28,3 +28,14 @@ export function formatArabicDate(iso: string): string {
     day: "numeric",
   }).format(date);
 }
+
+/** Format an ISO date string as an Arabic localized date with Western (0-9) numerals. */
+export function formatWesternDate(iso: string): string {
+  return new Intl.DateTimeFormat("ar-EG", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    numberingSystem: "latn",
+  }).format(new Date(iso));
+}

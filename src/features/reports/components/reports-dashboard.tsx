@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { apiGet, ApiError } from "@/lib/api-client";
+import { isAdmin } from "@/features/auth/shared";
 import type {
   StudentPageStats,
   HonorRollEntry,
@@ -231,7 +232,7 @@ export function ReportsDashboard({ role }: ReportsDashboardProps) {
   }
 
   const { summary, honorToday, honorMonth } = data;
-  const basePath = role === "admin" ? "/admin" : "/teacher";
+  const basePath = isAdmin(role) ? "/admin" : "/teacher";
 
   return (
     <div className="space-y-6">
@@ -242,7 +243,7 @@ export function ReportsDashboard({ role }: ReportsDashboardProps) {
         <StatCard icon={Calendar} value={summary.sessionsMonth} label="جلسة هذا الشهر" color="text-[#854d0e]" />
         <StatCard icon={BookOpen} value={summary.pagesToday} label="صفحة اليوم" color="text-[#2563eb]" />
         <StatCard icon={BookOpen} value={summary.pagesMonth} label="صفحة هذا الشهر" color="text-[#2563eb]" />
-        {role === "admin" && (
+        {isAdmin(role) && (
           <StatCard icon={Users} value={summary.activeTeachers} label="محفظ نشط" color="text-[#1e40af]" />
         )}
       </div>

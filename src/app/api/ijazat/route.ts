@@ -6,6 +6,7 @@ import { canAccessStudent } from "@/features/auth/student-access";
 import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { sanitizeError } from "@/lib/api-error";
 import { getApiContext } from "@/features/auth/api-context";
+import { logAction } from "@/features/audit/audit-log";
 
 // GET /api/ijazat — list ijazat (role-scoped)
 export async function GET(request: NextRequest) {
@@ -125,8 +126,31 @@ export async function POST(request: NextRequest) {
     // Recalculate student summary
     await recalculateStudentSummary(db, student_id);
 
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "create",
+      entityType: "ijaza",
+      entityId: created.id,
+      method: "POST",
+      path: "/api/ijazat",
+      statusCode: 201,
+      requestBody: { student_id, ijaza_type, juz_number, sheikh_name, ijaza_date },
+      responseBody: { id: created.id },
+    });
     return Response.json(created, { status: 201 });
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "create",
+      entityType: "ijaza",
+      method: "POST",
+      path: "/api/ijazat",
+      statusCode: 500,
+      requestBody: { student_id, ijaza_type },
+      responseBody: { error: sanitizeError(error, "api") },
+    });
     return Response.json({ error: sanitizeError(error, "api") }, { status: 500 });
   }
 }

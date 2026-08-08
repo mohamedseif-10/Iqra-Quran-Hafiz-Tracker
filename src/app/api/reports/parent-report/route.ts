@@ -81,4 +81,5 @@ export async function POST(request: NextRequest) {
     }
     return Response.json({ error: sanitizeError(error, "parent report generation") }, { status: 500 });
   }
+
 }

@@ -4,8 +4,11 @@ import {
   BookOpen,
   BarChart3,
   Award,
+  UserCog,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
+import { isAdmin, isSuperAdmin } from "@/features/auth/shared";
 import type { AppRole } from "@/domain/types";
 
 export type Role = AppRole;
@@ -15,6 +18,7 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -39,10 +43,26 @@ export const navItems: NavItem[] = [
     href: "/admin/ijazat",
     icon: BookOpen,
   },
+  {
+    label: "المشرفون",
+    href: "/admin/admins",
+    icon: UserCog,
+    superAdminOnly: true,
+  },
+  {
+    label: "سجل العمليات",
+    href: "/admin/audit-logs",
+    icon: ScrollText,
+    superAdminOnly: true,
+  },
 ];
 
 export function navItemsForRole(role: Role): NavItem[] {
-  return navItems.filter((item) => !item.adminOnly || role === "admin");
+  return navItems.filter((item) => {
+    if (item.superAdminOnly) return isSuperAdmin(role);
+    if (item.adminOnly) return isAdmin(role);
+    return true;
+  });
 }
 
 export function teacherNavItems(): NavItem[] {
@@ -67,5 +87,5 @@ export function teacherNavItems(): NavItem[] {
 }
 
 export function getNavItems(role: Role): NavItem[] {
-  return role === "admin" ? navItemsForRole(role) : teacherNavItems();
+  return isAdmin(role) ? navItemsForRole(role) : teacherNavItems();
 }

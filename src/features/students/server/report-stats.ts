@@ -53,8 +53,8 @@ export async function fetchReportStats(
     studentConditions.push(eq(studentsTable.gender, opts.teacherGender));
   }
 
-  // Fetch students, session items, session dates, teacher count, and teacher data in parallel
-  const [studentRows, itemRows, sessionsTodayRows, sessionsMonthRows, teacherCountRows, teacherRows, teacherItemRows] =
+  // Fetch students, session items, session dates, and teacher count in parallel
+  const [studentRows, itemRows, sessionsTodayRows, sessionsMonthRows, teacherCountRows] =
     await Promise.all([
       db
         .select({
@@ -94,24 +94,6 @@ export async function fetchReportStats(
         .select({ count: usersTable.id })
         .from(usersTable)
         .where(and(eq(usersTable.role, "teacher"), eq(usersTable.is_active, true))),
-      db
-        .select({
-          id: usersTable.id,
-          name: usersTable.name,
-          gender: usersTable.gender,
-          is_active: usersTable.is_active,
-        })
-        .from(usersTable)
-        .where(eq(usersTable.role, "teacher")),
-      db
-        .select({
-          teacher_id: sessionsTable.teacher_id,
-          session_date: sessionsTable.session_date,
-          student_id: sessionsTable.student_id,
-          pages: sessionItemsTable.pages,
-        })
-        .from(sessionItemsTable)
-        .innerJoin(sessionsTable, eq(sessionItemsTable.session_id, sessionsTable.id)),
     ]);
 
   const students: StudentRow[] = studentRows.map((s) => ({

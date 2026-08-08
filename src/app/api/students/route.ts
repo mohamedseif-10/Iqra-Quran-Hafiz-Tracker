@@ -5,6 +5,8 @@ import { getLevelInfo, countsFromInitialMemorization, validateInitialMemorizatio
 import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { sanitizeError } from "@/lib/api-error";
 import { getApiContext } from "@/features/auth/api-context";
+import { isAdmin } from "@/features/auth/shared";
+import { logAction } from "@/features/audit/audit-log";
 import { todayDateString, toDateString } from "@/lib/utils";
 
 // GET /api/students — role-scoped list with search, filters and pagination
@@ -93,7 +95,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Admin-only teacher_id filter: students who have sessions with this teacher
-  if (appUser.role === "admin" && teacherId) {
+  if (isAdmin(appUser.role) && teacherId) {
     const studentIdsWithTeacher = await db
       .select({ student_id: sessionsTable.student_id })
       .from(sessionsTable)
@@ -232,8 +234,31 @@ export async function POST(request: NextRequest) {
       .where(eq(studentsTable.id, student.id))
       .limit(1);
 
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "create",
+      entityType: "student",
+      entityId: student.id,
+      method: "POST",
+      path: "/api/students",
+      statusCode: 201,
+      requestBody: { name, gender, guardian_name },
+      responseBody: { id: student.id, name: student.name },
+    });
     return Response.json(finalStudent ?? student, { status: 201 });
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "create",
+      entityType: "student",
+      method: "POST",
+      path: "/api/students",
+      statusCode: 500,
+      requestBody: { name, gender },
+      responseBody: { error: sanitizeError(error, "student insert") },
+    });
     return Response.json({ error: sanitizeError(error, "student insert") }, { status: 500 });
   }
 }

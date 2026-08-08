@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { studentsTable } from "@/db/schema";
 import type { AppUser } from "./shared";
+import { isAdmin } from "./shared";
 import { getAppUserByAuthId } from "./session";
 
 /** Re-export — same function as `getAppUserByAuthId` in `session.ts` (A2). */
@@ -31,7 +32,7 @@ export async function canAccessStudent(
     .limit(1);
 
   if (!student) return false;
-  if (appUser.role === "admin") return true;
+  if (isAdmin(appUser.role)) return true;
 
   if (!appUser.can_view_all_genders && student.gender !== appUser.gender) {
     return false;

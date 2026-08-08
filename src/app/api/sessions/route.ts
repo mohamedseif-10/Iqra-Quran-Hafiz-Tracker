@@ -8,6 +8,8 @@ import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { recalculateStudentAttendance } from "@/features/attendance/server/recalc";
 import { sanitizeError } from "@/lib/api-error";
 import { getApiContext } from "@/features/auth/api-context";
+import { isAdmin } from "@/features/auth/shared";
+import { logAction } from "@/features/audit/audit-log";
 import { todayDateString } from "@/lib/utils";
 
 // GET /api/sessions — role-scoped list
@@ -21,6 +23,8 @@ export async function GET(request: NextRequest) {
   const sessionType = searchParams.get("session_type") ?? "";
   const dateFrom = searchParams.get("date_from") ?? "";
   const dateTo = searchParams.get("date_to") ?? "";
+  const limit = Math.min(Number(searchParams.get("limit") ?? "100"), 200);
+  const offset = Math.max(Number(searchParams.get("offset") ?? "0"), 0);
 
   const conditions = [];
 
@@ -54,7 +58,9 @@ export async function GET(request: NextRequest) {
       .leftJoin(studentsTable, eq(sessionsTable.student_id, studentsTable.id))
       .leftJoin(usersTable, eq(sessionsTable.teacher_id, usersTable.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(sessionsTable.session_date));
+      .orderBy(desc(sessionsTable.session_date))
+      .limit(limit)
+      .offset(offset);
 
     if (rows.length === 0) return Response.json([]);
 
@@ -127,7 +133,7 @@ export async function POST(request: NextRequest) {
   const ctx = await getApiContext();
   if (!ctx.ok) return ctx.response;
   const { db, appUser } = ctx;
-  if (appUser.role !== "teacher" && appUser.role !== "admin") {
+  if (appUser.role !== "teacher" && !isAdmin(appUser.role)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -190,8 +196,31 @@ export async function POST(request: NextRequest) {
     await recalculateStudentAttendance(db, sessionPayload.student_id, {
       affectedDate: sessionPayload.session_date,
     });
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "create",
+      entityType: "session",
+      entityId: created.id,
+      method: "POST",
+      path: "/api/sessions",
+      statusCode: 201,
+      requestBody: { student_id: sessionPayload.student_id, session_date: sessionPayload.session_date, items_count: sessionPayload.items.length },
+      responseBody: { id: created.id },
+    });
     return Response.json(created, { status: 201 });
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "create",
+      entityType: "session",
+      method: "POST",
+      path: "/api/sessions",
+      statusCode: 500,
+      requestBody: { student_id: sessionPayload.student_id, session_date: sessionPayload.session_date },
+      responseBody: { error: sanitizeError(error, "api") },
+    });
     return Response.json({ error: sanitizeError(error, "api") }, { status: 500 });
   }
 }

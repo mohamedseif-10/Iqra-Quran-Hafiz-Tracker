@@ -4,12 +4,13 @@ import { eq, inArray } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { sessionsTable, sessionItemsTable, surahsTable } from "@/db/schema";
 import { canAccessStudent } from "@/features/auth/student-access";
-import type { AppUser } from "@/features/auth/shared";
+import { isAdmin, type AppUser } from "@/features/auth/shared";
 import { validateSessionPayload } from "@/domain/sessions";
 import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { recalculateStudentAttendance } from "@/features/attendance/server/recalc";
 import { sanitizeError } from "@/lib/api-error";
 import { getApiContext } from "@/features/auth/api-context";
+import { logAction } from "@/features/audit/audit-log";
 import { todayDateString } from "@/lib/utils";
 
 interface RouteContext {
@@ -29,7 +30,7 @@ async function getSessionWithAccess(
 
   if (!session) return null;
 
-  if (appUser.role === "admin") return session;
+  if (isAdmin(appUser.role)) return session;
   if (appUser.role === "teacher" && session.teacher_id === appUser.id) return session;
 
   return null;
@@ -173,6 +174,17 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
     return Response.json(updated);
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "update",
+      entityType: "session",
+      entityId: id,
+      method: "PUT",
+      path: `/api/sessions/${id}`,
+      statusCode: 500,
+      responseBody: { error: sanitizeError(error, "api") },
+    });
     return Response.json({ error: sanitizeError(error, "api") }, { status: 500 });
   }
 }
@@ -195,8 +207,31 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     await recalculateStudentAttendance(db, existing.student_id, {
       affectedDate: existing.session_date,
     });
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "delete",
+      entityType: "session",
+      entityId: id,
+      method: "DELETE",
+      path: `/api/sessions/${id}`,
+      statusCode: 200,
+      requestBody: { student_id: existing.student_id },
+      responseBody: { ok: true },
+    });
     return Response.json({ ok: true });
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "delete",
+      entityType: "session",
+      entityId: id,
+      method: "DELETE",
+      path: `/api/sessions/${id}`,
+      statusCode: 500,
+      responseBody: { error: sanitizeError(error, "api") },
+    });
     return Response.json({ error: sanitizeError(error, "api") }, { status: 500 });
   }
 }

@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   smallint,
@@ -46,7 +47,7 @@ export const usersTable = pgTable(
     is_active: boolean("is_active").default(true),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
-  (t) => [check("users_role_check", sql`${t.role} IN ('admin', 'teacher')`), check("users_gender_check", sql`${t.gender} IS NULL OR ${t.gender} IN ('male', 'female')`)],
+  (t) => [check("users_role_check", sql`${t.role} IN ('admin', 'teacher', 'super_admin')`), check("users_gender_check", sql`${t.gender} IS NULL OR ${t.gender} IN ('male', 'female')`)],
 );
 
 export const studentsTable = pgTable(
@@ -293,6 +294,30 @@ export const initialMemorizationTable = pgTable(
 
 // ---- Inferred row types (single source of truth for app entity types) ----
 
+export const auditLogsTable = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: uuid("user_id"),
+    username: varchar("username", { length: 50 }),
+    action: varchar("action", { length: 50 }).notNull(),
+    entity_type: varchar("entity_type", { length: 50 }).notNull(),
+    entity_id: uuid("entity_id"),
+    method: varchar("method", { length: 10 }).notNull(),
+    path: varchar("path", { length: 500 }).notNull(),
+    status_code: integer("status_code").notNull(),
+    request_body: jsonb("request_body"),
+    response_body: jsonb("response_body"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("idx_audit_logs_user").on(t.user_id, t.created_at),
+    index("idx_audit_logs_entity").on(t.entity_type, t.entity_id, t.created_at),
+    index("idx_audit_logs_action").on(t.action, t.created_at),
+    index("idx_audit_logs_created").on(t.created_at),
+  ],
+);
+
 export type User = typeof usersTable.$inferSelect;
 export type NewUser = typeof usersTable.$inferInsert;
 export type Student = typeof studentsTable.$inferSelect;
@@ -309,3 +334,5 @@ export type Ijaza = typeof ijazatTable.$inferSelect;
 export type NewIjaza = typeof ijazatTable.$inferInsert;
 export type InitialMemorization = typeof initialMemorizationTable.$inferSelect;
 export type NewInitialMemorization = typeof initialMemorizationTable.$inferInsert;
+export type AuditLog = typeof auditLogsTable.$inferSelect;
+export type NewAuditLog = typeof auditLogsTable.$inferInsert;
