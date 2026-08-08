@@ -25,11 +25,3 @@ export function sanitizeError(error: unknown, context: string): string {
   }
   return "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
 }
-
-/**
- * Build a JSON Response for an error, with the sanitized message and a status.
- * The full error is logged server-side.
- */
-export function errorResponse(error: unknown, context: string, status = 500): Response {
-  return Response.json({ error: sanitizeError(error, context) }, { status });
-}

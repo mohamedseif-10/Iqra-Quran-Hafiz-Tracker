@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Pencil, Award } from "lucide-react";
 import { GenderBadge, StudentStatusBadge, type StudentStatus } from "@/components/badges";
+import { formatWesternDate } from "@/lib/arabic";
 import { LevelBadge } from "@/features/students/components/level-badge";
 import { StudentProfileTabs } from "@/features/students/components/student-profile-tabs";
 import { StudentDeleteButton } from "@/features/students/components/student-delete-button";
@@ -128,12 +129,12 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
             {student.birth_date && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">تاريخ الميلاد</dt>
-                <dd>{new Date(student.birth_date).toLocaleDateString("ar-EG")}</dd>
+                <dd>{formatWesternDate(student.birth_date)}</dd>
               </div>
             )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">تاريخ الانضمام</dt>
-              <dd>{new Date(student.enrollment_date).toLocaleDateString("ar-EG")}</dd>
+              <dd>{formatWesternDate(student.enrollment_date)}</dd>
             </div>
             {student.notes && (
               <div className="pt-1">
@@ -166,7 +167,7 @@ export default async function AdminStudentProfilePage({ params }: PageProps) {
             {student.last_session_date && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">آخر جلسة</span>
-                <span>{new Date(student.last_session_date).toLocaleDateString("ar-EG")}</span>
+                <span>{formatWesternDate(student.last_session_date)}</span>
               </div>
             )}
             {/* Progress bar */}

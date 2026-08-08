@@ -12,6 +12,8 @@ import { validateInitialMemorization, validateStudentPayload } from "@/domain/st
 import { recalculateStudentSummary } from "@/features/students/server/recalc";
 import { recalculateStudentAttendance } from "@/features/attendance/server/recalc";
 import { getApiContext } from "@/features/auth/api-context";
+import { isAdmin } from "@/features/auth/shared";
+import { logAction } from "@/features/audit/audit-log";
 import { sanitizeError } from "@/lib/api-error";
 import { todayDateString } from "@/lib/utils";
 
@@ -167,6 +169,17 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
     return Response.json(finalStudent ?? data);
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "update",
+      entityType: "student",
+      entityId: id,
+      method: "PUT",
+      path: `/api/students/${id}`,
+      statusCode: 500,
+      responseBody: { error: sanitizeError(error, "student update") },
+    });
     return Response.json({ error: sanitizeError(error, "student update") }, { status: 500 });
   }
 }
@@ -180,7 +193,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
   const ctx = await getApiContext();
   if (!ctx.ok) return ctx.response;
   const { db, appUser } = ctx;
-  if (appUser.role !== "admin") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(appUser.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const permanent = searchParams.get("permanent") === "true";
@@ -200,6 +213,18 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
         .update(studentsTable)
         .set({ status: "withdrawn", status_since: today })
         .where(eq(studentsTable.id, id));
+      await logAction(db, {
+        userId: appUser.id,
+        username: appUser.username,
+        action: "delete",
+        entityType: "student",
+        entityId: id,
+        method: "DELETE",
+        path: `/api/students/${id}`,
+        statusCode: 200,
+        requestBody: { permanent: false },
+        responseBody: { ok: true, deactivated: true },
+      });
       return Response.json({ ok: true, deactivated: true });
     }
 
@@ -212,8 +237,31 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
 
     await db.delete(studentsTable).where(eq(studentsTable.id, id));
 
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "delete",
+      entityType: "student",
+      entityId: id,
+      method: "DELETE",
+      path: `/api/students/${id}`,
+      statusCode: 200,
+      requestBody: { permanent: true },
+      responseBody: { ok: true, deleted: true },
+    });
     return Response.json({ ok: true, deleted: true });
   } catch (error) {
+    await logAction(db, {
+      userId: appUser.id,
+      username: appUser.username,
+      action: "delete",
+      entityType: "student",
+      entityId: id,
+      method: "DELETE",
+      path: `/api/students/${id}`,
+      statusCode: 500,
+      responseBody: { error: sanitizeError(error, "student delete") },
+    });
     return Response.json({ error: sanitizeError(error, "student delete") }, { status: 500 });
   }
 }
