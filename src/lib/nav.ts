@@ -1,31 +1,28 @@
 import {
+  LayoutDashboard,
   Users,
   GraduationCap,
+  ClipboardList,
   BookOpen,
   BarChart3,
   Award,
-  UserCog,
-  ScrollText,
   type LucideIcon,
 } from "lucide-react";
-import { isAdmin, isSuperAdmin, isStudent } from "@/features/auth/shared";
-import type { AppRole } from "@/domain/types";
 
-export type Role = AppRole;
+export type Role = "admin" | "teacher";
 
 export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  superAdminOnly?: boolean;
 }
 
 export const navItems: NavItem[] = [
   {
-    label: "التقارير",
-    href: "/admin/reports",
-    icon: BarChart3,
+    label: "لوحة التحكم",
+    href: "/admin",
+    icon: LayoutDashboard,
   },
   {
     label: "الطلاب",
@@ -39,39 +36,30 @@ export const navItems: NavItem[] = [
     adminOnly: true,
   },
   {
+    label: "إسناد الطلاب",
+    href: "/admin/assignments",
+    icon: ClipboardList,
+    adminOnly: true,
+  },
+  {
     label: "الإجازات",
     href: "/admin/ijazat",
     icon: BookOpen,
   },
   {
-    label: "المشرفون",
-    href: "/admin/admins",
-    icon: UserCog,
-    superAdminOnly: true,
-  },
-  {
-    label: "سجل العمليات",
-    href: "/admin/audit-logs",
-    icon: ScrollText,
-    superAdminOnly: true,
+    label: "التقارير",
+    href: "/admin/reports",
+    icon: BarChart3,
   },
 ];
 
 export function navItemsForRole(role: Role): NavItem[] {
-  return navItems.filter((item) => {
-    if (item.superAdminOnly) return isSuperAdmin(role);
-    if (item.adminOnly) return isAdmin(role);
-    return true;
-  });
+  return navItems.filter((item) => !item.adminOnly || role === "admin");
 }
 
 export function teacherNavItems(): NavItem[] {
   return [
-    {
-      label: "التقارير",
-      href: "/teacher/reports",
-      icon: BarChart3,
-    },
+    { label: "لوحة التحكم", href: "/teacher", icon: LayoutDashboard },
     { label: "الطلاب", href: "/teacher/students", icon: Users },
     {
       label: "تسجيل جلسة",
@@ -83,15 +71,14 @@ export function teacherNavItems(): NavItem[] {
       href: "/teacher/ijazat/new",
       icon: Award,
     },
+    {
+      label: "التقارير",
+      href: "/teacher/reports",
+      icon: BarChart3,
+    },
   ];
 }
 
-/** Read-only student portal — a single dashboard of the student's own data. */
-export function studentNavItems(): NavItem[] {
-  return [{ label: "لوحتي", href: "/student", icon: BookOpen }];
-}
-
 export function getNavItems(role: Role): NavItem[] {
-  if (isStudent(role)) return studentNavItems();
-  return isAdmin(role) ? navItemsForRole(role) : teacherNavItems();
+  return role === "admin" ? navItemsForRole(role) : teacherNavItems();
 }

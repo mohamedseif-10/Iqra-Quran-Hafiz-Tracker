@@ -1,2 +1,0 @@
-ALTER TABLE "initial_memorization" ADD COLUMN "pages" smallint;--> statement-breakpoint
-ALTER TABLE "initial_memorization" ADD CONSTRAINT "initial_memorization_pages_check" CHECK ("initial_memorization"."pages" IS NULL OR ("initial_memorization"."pages" BETWEEN 1 AND 20));

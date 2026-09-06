@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { User, Lock, Eye, EyeOff, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
   initialLoginActionState,
   type LoginActionState,
-} from "@/features/auth/shared";
-import { loginAction } from "@/features/auth/actions";
+} from "@/lib/auth/shared";
+import { loginAction } from "@/lib/auth/actions";
 
 /* ── Shared styles ───────────────────────────────────────────────────── */
 const fieldWrap =
@@ -43,12 +42,7 @@ function SubmitButton() {
 }
 
 /* ── Main form ───────────────────────────────────────────────────────── */
-export interface LoginNotice {
-  kind: "success" | "error";
-  text: string;
-}
-
-export function LoginForm({ notice }: { notice?: LoginNotice | null }) {
+export function LoginForm() {
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     loginAction,
     initialLoginActionState
@@ -57,28 +51,10 @@ export function LoginForm({ notice }: { notice?: LoginNotice | null }) {
 
   return (
     <form action={formAction} className="space-y-5">
-      {/* One-time notice from the verification callback (?verified=1|0) --- */}
-      {notice ? (
-        <p
-          className={
-            notice.kind === "success"
-              ? "flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary"
-              : "flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-          }
-        >
-          {notice.kind === "success" ? (
-            <CheckCircle2 className="size-4 shrink-0" />
-          ) : (
-            <AlertTriangle className="size-4 shrink-0" />
-          )}
-          <span>{notice.text}</span>
-        </p>
-      ) : null}
-
-      {/* Identifier (email or legacy username) ---------------------- */}
+      {/* Username --------------------------------------------------- */}
       <div className="space-y-2">
-        <label htmlFor="identifier" className="block text-sm font-semibold text-foreground">
-          البريد الإلكتروني أو اسم المستخدم
+        <label htmlFor="username" className="block text-sm font-semibold text-foreground">
+          اسم المستخدم
         </label>
         {/* Icon is a SIBLING flex cell — can never overlap the input */}
         <div className={fieldWrap}>
@@ -86,10 +62,10 @@ export function LoginForm({ notice }: { notice?: LoginNotice | null }) {
             <User className="size-4" />
           </div>
           <input
-            id="identifier"
-            name="identifier"
+            id="username"
+            name="username"
             autoComplete="username"
-            placeholder="أدخل بريدك الإلكتروني أو اسم المستخدم"
+            placeholder="أدخل اسم المستخدم"
             dir="rtl"
             className={baseInput}
           />
@@ -154,17 +130,6 @@ export function LoginForm({ notice }: { notice?: LoginNotice | null }) {
       ) : null}
 
       <SubmitButton />
-
-      {/* Register link --------------------------------------------- */}
-      <p className="text-center text-sm text-muted-foreground">
-        ليس لديك حساب؟{" "}
-        <Link
-          href="/register"
-          className="font-semibold text-primary hover:text-primary/80 transition-colors"
-        >
-          أنشئ حساباً جديداً
-        </Link>
-      </p>
     </form>
   );
 }

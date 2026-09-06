@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { requireRole } from "@/features/auth/session";
+import { requireRole } from "@/lib/auth/session";
 
 export default async function AdminLayout({
   children,
@@ -9,7 +9,7 @@ export default async function AdminLayout({
   const user = await requireRole("admin");
 
   return (
-    <AppShell role={user.role} username={user.name}>
+    <AppShell role="admin" username={user.name}>
       {children}
     </AppShell>
   );
